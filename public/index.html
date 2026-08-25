@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MES - Hệ Thống Quản Lý Sản Xuất</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Thư viện QRCode và i18n -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="/i18n.js"></script>
 </head>
@@ -20,10 +19,9 @@
       </div>
       
       <div class="flex flex-wrap items-center gap-2">
-        <!-- Dropdown 3 Ngôn Ngữ -->
         <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-xl mr-2">
           <span class="text-xs">🌐</span>
-          <select id="langSelect" onchange="setLanguage(this.value)" class="bg-transparent text-xs text-white font-bold outline-none cursor-pointer">
+          <select id="langSelect" onchange="handleLangSwitch(this.value)" class="bg-transparent text-xs text-white font-bold outline-none cursor-pointer">
             <option value="vi" class="bg-slate-900 text-white">🇻🇳 Tiếng Việt</option>
             <option value="en" class="bg-slate-900 text-white">🇬🇧 English</option>
             <option value="zh" class="bg-slate-900 text-white">🇹🇼 繁體中文</option>
@@ -46,15 +44,15 @@
         <form id="woForm" class="space-y-4 text-xs">
           <div>
             <label data-i18n="lbl_wo_id" class="block text-slate-400 mb-1">Mã Lệnh (WO ID)</label>
-            <input type="text" id="wo_id" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none focus:border-cyan-500">
+            <input type="text" id="wo_id" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none focus:border-cyan-500 font-mono">
           </div>
           <div>
             <label data-i18n="lbl_product" class="block text-slate-400 mb-1">Sản phẩm</label>
-            <select id="product_id" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none focus:border-cyan-500"></select>
+            <select id="product_id" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none focus:border-cyan-500 font-sans"></select>
           </div>
           <div>
             <label data-i18n="lbl_plan_qty" class="block text-slate-400 mb-1">Số lượng kế hoạch (PCS)</label>
-            <input type="number" id="plan_quantity" value="500" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none focus:border-cyan-500">
+            <input type="number" id="plan_quantity" value="500" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none focus:border-cyan-500 font-mono">
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -113,6 +111,12 @@
   <script>
     const API_BASE = '/api';
 
+    function handleLangSwitch(lang) {
+      setLanguage(lang);
+      loadProducts();
+      loadWorkOrders();
+    }
+
     async function loadProducts() {
       try {
         const res = await fetch(`${API_BASE}/products`);
@@ -121,7 +125,7 @@
         select.innerHTML = '';
         if (result.data) {
           result.data.forEach(p => {
-            select.innerHTML += `<option value="${p.product_id}">${p.product_id} - ${p.product_name}</option>`;
+            select.innerHTML += `<option value="${p.product_id}">${p.product_id} - ${t(p.product_name)}</option>`;
           });
         }
       } catch (e) {
@@ -141,17 +145,20 @@
           return;
         }
 
+        const curLang = getSavedLanguage();
+        const btnViewText = curLang === 'en' ? 'View QR' : (curLang === 'zh' ? '查看 QR 卡' : 'Xem Thẻ QR');
+
         result.data.forEach(wo => {
           tbody.innerHTML += `
             <tr class="hover:bg-slate-900/50">
               <td class="p-3 font-bold text-cyan-400">${wo.wo_id}</td>
-              <td class="p-3 text-slate-200 font-sans">${wo.product_name}</td>
-              <td class="p-3 text-center font-bold text-white">${Number(wo.plan_quantity).toLocaleString()} ${wo.unit || 'PCS'}</td>
+              <td class="p-3 text-slate-200 font-sans">${t(wo.product_name)}</td>
+              <td class="p-3 text-center font-bold text-white">${Number(wo.plan_quantity).toLocaleString()} ${t(wo.unit || 'PCS')}</td>
               <td class="p-3 text-center">
-                <span class="px-2.5 py-1 rounded text-[10px] bg-blue-950 text-blue-300 border border-blue-800 font-bold">${wo.status}</span>
+                <span class="px-2.5 py-1 rounded text-[10px] bg-blue-950 text-blue-300 border border-blue-800 font-bold">${t(wo.status)}</span>
               </td>
               <td class="p-3 text-center">
-                <button onclick="viewTickets('${wo.wo_id}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-cyan-300 px-2.5 py-1 rounded border border-slate-700">Xem Thẻ QR</button>
+                <button onclick="viewTickets('${wo.wo_id}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-cyan-300 px-2.5 py-1 rounded border border-slate-700">${btnViewText}</button>
               </td>
             </tr>
           `;
@@ -169,25 +176,28 @@
         const section = document.getElementById('qrSection');
         grid.innerHTML = '';
 
+        const curLang = getSavedLanguage();
+        const stepLabel = curLang === 'en' ? 'Step' : (curLang === 'zh' ? '工序' : 'Bước');
+
         if (result.tickets && result.tickets.length > 0) {
           document.getElementById('currentWoTitle').innerText = woId;
           section.classList.remove('hidden');
 
-          result.tickets.forEach(t => {
-            const cardId = `qr_${t.ticket_id.replace(/-/g, '_')}`;
+          result.tickets.forEach(tkt => {
+            const cardId = `qr_${tkt.ticket_id.replace(/-/g, '_')}`;
             grid.innerHTML += `
               <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl flex flex-col items-center text-center space-y-2 shadow-lg">
-                <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyan-400 font-bold">Bước ${t.step_order}</span>
-                <b class="text-xs text-white">${t.operation_name}</b>
-                <span class="text-[10px] text-slate-400">${t.department}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyan-400 font-bold">${stepLabel} ${tkt.step_order}</span>
+                <b class="text-xs text-white">${t(`Bước ${tkt.step_order} - ${tkt.operation_name}`)}</b>
+                <span class="text-[10px] text-slate-400">${t(tkt.department)}</span>
                 <div id="${cardId}" class="p-2 bg-white rounded-lg my-1"></div>
-                <span class="text-[10px] font-mono text-cyan-300">${t.ticket_id}</span>
-                <span class="text-[10px] text-slate-500">SL: ${t.target_qty} PCS</span>
+                <span class="text-[10px] font-mono text-cyan-300">${tkt.ticket_id}</span>
+                <span class="text-[10px] text-slate-500">SL: ${tkt.target_qty} PCS</span>
               </div>
             `;
             setTimeout(() => {
               new QRCode(document.getElementById(cardId), {
-                text: t.ticket_id,
+                text: tkt.ticket_id,
                 width: 80,
                 height: 80
               });

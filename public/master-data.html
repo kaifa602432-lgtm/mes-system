@@ -3,97 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MES - Quản Trị Master Data & Định Mức BOM</title>
+  <title>MES - Quản Trị Dữ Liệu Gốc & Định Mức BOM</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/i18n.js"></script>
 </head>
-<body class="bg-slate-100 p-6 min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 space-y-6">
   <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Header -->
-    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+    <!-- Header & Menu Điều Hướng & Đổi Ngôn Ngữ -->
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
       <div>
-        <h1 class="text-xl font-bold text-slate-800">📦 QUẢN TRỊ DỮ LIỆU GỐC & ĐỊNH MỨC BOM</h1>
-        <p class="text-xs text-slate-500">Quản lý danh mục Nguyên vật liệu, Máy móc & Định mức tiêu hao kỹ thuật</p>
+        <h1 data-i18n="md_header_title" class="text-xl font-black text-cyan-400">📦 QUẢN TRỊ DỮ LIỆU GỐC & ĐỊNH MỨC BOM</h1>
+        <p data-i18n="md_header_sub" class="text-xs text-slate-400">Quản lý danh mục Nguyên vật liệu, Máy móc & Định mức tiêu hao kỹ thuật</p>
       </div>
-      <div class="flex gap-2">
-        <a href="/" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300">🏠 Trang Chủ</a>
-        <a href="/dashboard.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white hover:bg-slate-700">📊 Dashboard</a>
+      
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-xl mr-2">
+          <span class="text-xs">🌐</span>
+          <select id="langSelect" onchange="handleLangSwitch(this.value)" class="bg-transparent text-xs text-white font-bold outline-none cursor-pointer">
+            <option value="vi" class="bg-slate-900 text-white">🇻🇳 Tiếng Việt</option>
+            <option value="en" class="bg-slate-900 text-white">🇬🇧 English</option>
+            <option value="zh" class="bg-slate-900 text-white">🇹🇼 繁體中文</option>
+          </select>
+        </div>
+
+        <a href="/" data-i18n="nav_create_wo" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">🏠 Phát Lệnh</a>
+        <a href="/analytics.html" data-i18n="nav_analytics" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-3.5 py-2 rounded-xl transition">📈 Phân Tích & APS</a>
+        <a href="/dashboard.html" data-i18n="nav_oee" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">📊 Dashboard OEE</a>
       </div>
     </div>
 
-    <!-- Cột 1: Danh sách Nguyên Vật Liệu & Tồn Kho -->
+    <!-- 2 Bảng: Danh Mục Vật Tư & Định Mức BOM -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
-        <div class="flex justify-between items-center border-b pb-2">
-          <h2 class="font-bold text-slate-800 text-sm">🔩 Danh Mục Vật Tư & Tồn Kho Thực Tế</h2>
-          <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold">md_materials</span>
+      
+      <!-- Bảng 1: Danh Mục Vật Tư & Tồn Kho -->
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <h2 data-i18n="card_mat_stock" class="text-base font-bold text-white">🪛 Danh Mục Vật Tư & Tồn Kho Thực Tế</h2>
+          <span class="text-xs font-mono text-cyan-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">md_materials</span>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto max-h-80">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
-              <tr class="bg-slate-50 text-slate-500 border-b">
-                <th class="p-2.5">Mã Vật Tư</th>
-                <th class="p-2.5">Tên Vật Tư / Quy Cách</th>
-                <th class="p-2.5 text-center">ĐVT</th>
-                <th class="p-2.5 text-right">Tồn Thực Tế</th>
+              <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                <th data-i18n="th_mat_code" class="p-3">Mã Vật Tư</th>
+                <th data-i18n="th_mat_name" class="p-3">Tên Vật Tư / Quy Cách</th>
+                <th data-i18n="th_mat_unit" class="p-3 text-center">ĐVT</th>
+                <th data-i18n="th_mat_stock" class="p-3 text-right">Tồn Thực Tế</th>
               </tr>
             </thead>
-            <tbody id="materialTableBody" class="divide-y text-slate-700">
-              <tr><td colspan="4" class="p-3 text-center text-slate-400">Đang tải vật tư...</td></tr>
+            <tbody id="materialsBody" class="divide-y divide-slate-800 font-mono">
+              <tr><td colspan="4" class="p-4 text-center text-slate-500">Đang tải vật tư...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Cột 2: Cây Định Mức BOM Theo Sản Phẩm -->
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
-        <div class="flex justify-between items-center border-b pb-2">
-          <h2 class="font-bold text-slate-800 text-sm">🌳 Định Mức Kỹ Thuật (BOM Tree)</h2>
+      <!-- Bảng 2: Định Mức BOM Tree -->
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
+          <h2 data-i18n="card_bom_tree" class="text-base font-bold text-emerald-400">🌳 Định Mức Kỹ Thuật (BOM Tree)</h2>
           <div class="flex items-center gap-2">
-            <label class="text-xs text-slate-500">Mã Hàng:</label>
-            <select id="productSelect" onchange="loadBOM()" class="text-xs border rounded p-1 bg-slate-50 font-bold text-blue-600 outline-none">
-              <!-- Load từ API -->
-            </select>
+            <span data-i18n="lbl_bom_prod" class="text-xs text-slate-400">Mã Hàng:</span>
+            <select id="bomProductSelect" onchange="loadBOM(this.value)" class="bg-slate-950 border border-slate-700 text-cyan-300 text-xs rounded-lg p-1.5 outline-none font-semibold"></select>
           </div>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto max-h-80">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
-              <tr class="bg-slate-50 text-slate-500 border-b">
-                <th class="p-2.5">Vật Tư Tiêu Hao</th>
-                <th class="p-2.5 text-center">Định Mức / SP</th>
-                <th class="p-2.5 text-center">Hao Hụt (%)</th>
-                <th class="p-2.5">Ghi Chú Công Đoạn</th>
+              <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                <th data-i18n="th_bom_mat" class="p-3">Vật Tư Tiêu Hao</th>
+                <th data-i18n="th_bom_qty" class="p-3 text-center">Định Mức / SP</th>
+                <th data-i18n="th_bom_scrap" class="p-3 text-center">Hao Hụt (%)</th>
+                <th data-i18n="th_bom_notes" class="p-3">Ghi Chú Công Đoạn</th>
               </tr>
             </thead>
-            <tbody id="bomTableBody" class="divide-y text-slate-700">
-              <tr><td colspan="4" class="p-3 text-center text-slate-400">Chọn sản phẩm để xem BOM...</td></tr>
+            <tbody id="bomBody" class="divide-y divide-slate-800 font-sans">
+              <tr><td colspan="4" class="p-4 text-center text-slate-500">Chọn sản phẩm để xem BOM...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
+
     </div>
 
-    <!-- Hàng dưới: Danh mục Máy móc & Cycle Time chuẩn -->
-    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h2 class="font-bold text-slate-800 text-sm">⚙️ Danh Mục Máy Móc & Thời Gian Chu Kỳ Chuẩn (OEE Base)</h2>
-        <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">md_machines</span>
+    <!-- Bảng 3: Danh Mục Máy Móc & Chu Kỳ Chuẩn -->
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h2 data-i18n="card_mach_list" class="text-base font-bold text-white">⚙️ Danh Mục Máy Móc & Thời Gian Chu Kỳ Chuẩn (OEE Base)</h2>
+        <span class="text-xs font-mono text-cyan-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">md_machines</span>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
+        <table class="w-full text-left text-xs border-collapse font-sans">
           <thead>
-            <tr class="bg-slate-50 text-slate-500 border-b">
-              <th class="p-2.5">Mã Máy</th>
-              <th class="p-2.5">Tên Máy</th>
-              <th class="p-2.5">Loại Thiết Bị</th>
-              <th class="p-2.5 text-center">Tải Trọng / Trục</th>
-              <th class="p-2.5 text-center">Chu Kỳ Chuẩn (Cycle Time)</th>
-              <th class="p-2.5 text-center">Trạng Thái</th>
+            <tr class="bg-slate-950 text-slate-400 border-b border-slate-800">
+              <th data-i18n="th_mc_id" class="p-3 font-mono">Mã Máy</th>
+              <th data-i18n="th_mc_name" class="p-3">Tên Máy</th>
+              <th data-i18n="th_mc_dept" class="p-3">Phân Xưởng</th>
+              <th data-i18n="th_mc_cycle" class="p-3 text-center font-mono">Chu Kỳ Chuẩn (Cycle Time)</th>
+              <th data-i18n="th_mc_status" class="p-3 text-center font-mono">Trạng Thái</th>
             </tr>
           </thead>
-          <tbody id="machineTableBody" class="divide-y text-slate-700">
-            <tr><td colspan="6" class="p-3 text-center text-slate-400">Đang tải danh sách máy...</td></tr>
+          <tbody id="machinesBody" class="divide-y divide-slate-800 font-mono">
+            <tr><td colspan="5" class="p-4 text-center text-slate-500">Đang tải danh sách máy móc...</td></tr>
           </tbody>
         </table>
       </div>
@@ -104,83 +116,115 @@
   <script>
     const API_BASE = '/api';
 
+    function handleLangSwitch(lang) {
+      setLanguage(lang);
+      loadMaterials();
+      loadProductsForBOM();
+      loadMachines();
+    }
+
     async function loadMaterials() {
-      const res = await fetch(`${API_BASE}/materials`);
-      const result = await res.json();
-      const tbody = document.getElementById('materialTableBody');
-      tbody.innerHTML = '';
-      result.data.forEach(m => {
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-50">
-            <td class="p-2.5 font-mono font-bold text-blue-600">${m.material_id}</td>
-            <td class="p-2.5"><b>${m.material_name}</b><br><span class="text-[10px] text-slate-400">${m.specifications || ''}</span></td>
-            <td class="p-2.5 text-center">${m.unit}</td>
-            <td class="p-2.5 text-right font-bold text-emerald-600">${Number(m.current_stock).toLocaleString()}</td>
-          </tr>
-        `;
-      });
-    }
+      try {
+        const res = await fetch(`${API_BASE}/materials`);
+        const result = await res.json();
+        const tbody = document.getElementById('materialsBody');
+        tbody.innerHTML = '';
 
-    async function loadProductsDropdown() {
-      const res = await fetch(`${API_BASE}/products`);
-      const result = await res.json();
-      const select = document.getElementById('productSelect');
-      select.innerHTML = '';
-      result.data.forEach(p => {
-        select.innerHTML += `<option value="${p.product_id}">${p.product_id} - ${p.product_name}</option>`;
-      });
-      loadBOM();
-    }
-
-    async function loadBOM() {
-      const productId = document.getElementById('productSelect').value;
-      const res = await fetch(`${API_BASE}/bom/${productId}`);
-      const result = await res.json();
-      const tbody = document.getElementById('bomTableBody');
-      tbody.innerHTML = '';
-
-      if (!result.data || result.data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-400">Chưa thiết lập BOM cho sản phẩm này.</td></tr>';
-        return;
+        if (result.data) {
+          result.data.forEach(m => {
+            tbody.innerHTML += `
+              <tr class="hover:bg-slate-900/50">
+                <td class="p-3 font-bold text-cyan-400">${m.material_id}</td>
+                <td class="p-3 font-sans text-slate-200">
+                  <b class="text-white block">${t(m.material_name)}</b>
+                  <span class="text-[11px] text-slate-400">${t(m.specifications || '')}</span>
+                </td>
+                <td class="p-3 text-center text-slate-300 font-sans">${t(m.unit)}</td>
+                <td class="p-3 text-right font-bold text-emerald-400 font-mono">${Number(m.current_stock).toLocaleString()}</td>
+              </tr>
+            `;
+          });
+        }
+      } catch (e) {
+        console.error(e);
       }
+    }
 
-      result.data.forEach(b => {
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-50">
-            <td class="p-2.5 font-semibold text-slate-700">${b.material_name} (${b.material_id})</td>
-            <td class="p-2.5 text-center font-bold text-blue-600">${b.quantity_required} ${b.unit}</td>
-            <td class="p-2.5 text-center text-rose-500 font-semibold">${b.scrap_rate_percent}%</td>
-            <td class="p-2.5 text-slate-500 text-[11px]">${b.notes || ''}</td>
-          </tr>
-        `;
-      });
+    async function loadProductsForBOM() {
+      try {
+        const res = await fetch(`${API_BASE}/products`);
+        const result = await res.json();
+        const select = document.getElementById('bomProductSelect');
+        const prevVal = select.value;
+        select.innerHTML = '';
+        if (result.data && result.data.length > 0) {
+          result.data.forEach(p => {
+            select.innerHTML += `<option value="${p.product_id}">${p.product_id} - ${t(p.product_name)}</option>`;
+          });
+          select.value = prevVal || result.data[0].product_id;
+          loadBOM(select.value);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadBOM(productId) {
+      try {
+        const res = await fetch(`${API_BASE}/bom/${productId}`);
+        const result = await res.json();
+        const tbody = document.getElementById('bomBody');
+        tbody.innerHTML = '';
+
+        if (result.data) {
+          result.data.forEach(b => {
+            tbody.innerHTML += `
+              <tr class="hover:bg-slate-900/50">
+                <td class="p-3">
+                  <b class="text-white block">${t(b.material_name)}</b>
+                  <span class="text-[11px] text-slate-400 font-mono">${b.material_id}</span>
+                </td>
+                <td class="p-3 text-center font-bold text-cyan-300 font-mono">${Number(b.quantity_required).toFixed(4)} ${t(b.unit)}</td>
+                <td class="p-3 text-center font-bold text-rose-400 font-mono">${b.scrap_rate_percent}%</td>
+                <td class="p-3 text-slate-300 text-xs">${t(b.notes || '')}</td>
+              </tr>
+            `;
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     async function loadMachines() {
-      const res = await fetch(`${API_BASE}/machines`);
-      const result = await res.json();
-      const tbody = document.getElementById('machineTableBody');
-      tbody.innerHTML = '';
-      result.data.forEach(m => {
-        const badge = m.current_status === 'RUNNING' 
-          ? '<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700 font-bold">RUNNING</span>'
-          : '<span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 font-bold">IDLE</span>';
-        
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-50">
-            <td class="p-2.5 font-mono font-bold text-slate-800">${m.machine_id}</td>
-            <td class="p-2.5 font-semibold">${m.machine_name}</td>
-            <td class="p-2.5 text-slate-500">${m.machine_type}</td>
-            <td class="p-2.5 text-center">${m.capacity_tonnage ? m.capacity_tonnage + ' Tấn' : '-'}</td>
-            <td class="p-2.5 text-center font-bold text-blue-600">${m.ideal_cycle_time || 30} s/pcs</td>
-            <td class="p-2.5 text-center">${badge}</td>
-          </tr>
-        `;
-      });
+      try {
+        const res = await fetch(`${API_BASE}/machines`);
+        const result = await res.json();
+        const tbody = document.getElementById('machinesBody');
+        tbody.innerHTML = '';
+
+        if (result.data) {
+          result.data.forEach(m => {
+            tbody.innerHTML += `
+              <tr class="hover:bg-slate-900/50">
+                <td class="p-3 font-bold text-cyan-400 font-mono">${m.machine_id}</td>
+                <td class="p-3 text-white font-sans font-medium">${t(m.machine_name)}</td>
+                <td class="p-3 text-slate-300 font-sans">${t(m.department)}</td>
+                <td class="p-3 text-center text-yellow-300 font-bold font-mono">${Number(m.ideal_cycle_time).toFixed(2)} s/pcs</td>
+                <td class="p-3 text-center font-sans">
+                  <span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700 font-bold">${t(m.current_status)}</span>
+                </td>
+              </tr>
+            `;
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     loadMaterials();
-    loadProductsDropdown();
+    loadProductsForBOM();
     loadMachines();
   </script>
 </body>

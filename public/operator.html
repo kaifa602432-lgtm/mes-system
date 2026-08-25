@@ -20,7 +20,7 @@
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-xl mr-2">
           <span class="text-xs">🌐</span>
-          <select id="langSelect" onchange="setLanguage(this.value)" class="bg-transparent text-xs text-white font-bold outline-none cursor-pointer">
+          <select id="langSelect" onchange="handleLangSwitch(this.value)" class="bg-transparent text-xs text-white font-bold outline-none cursor-pointer">
             <option value="vi" class="bg-slate-900 text-white">🇻🇳 Tiếng Việt</option>
             <option value="en" class="bg-slate-900 text-white">🇬🇧 English</option>
             <option value="zh" class="bg-slate-900 text-white">🇹🇼 繁體中文</option>
@@ -36,7 +36,7 @@
     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
       <h2 data-i18n="card_scan_qr" class="text-base font-bold text-white border-b border-slate-800 pb-3">📷 Quét Thẻ Công Đoạn</h2>
       <div class="flex gap-2">
-        <input type="text" id="ticketInput" placeholder="Nhập mã thẻ hoặc Quét mã QR..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-cyan-500 font-mono text-sm">
+        <input type="text" id="ticketInput" data-i18n="lbl_scan_input" placeholder="Nhập mã thẻ hoặc Quét mã QR..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-cyan-500 font-mono text-sm">
         <button onclick="scanTicket()" data-i18n="btn_scan_action" class="bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black px-6 rounded-xl transition text-sm">🔍 Quét</button>
       </div>
     </div>
@@ -105,6 +105,15 @@
     let currentTicket = null;
     let currentLogId = null;
 
+    function handleLangSwitch(lang) {
+      setLanguage(lang);
+      loadMachines();
+      if (currentTicket) {
+        document.getElementById('disp_op').innerText = t(`Bước ${currentTicket.step_order} - ${currentTicket.operation_name}`);
+        document.getElementById('disp_prod').innerText = `${currentTicket.product_id} - ${t(currentTicket.product_name)}`;
+      }
+    }
+
     async function loadMachines() {
       try {
         const res = await fetch(`${API_BASE}/machines`);
@@ -113,7 +122,7 @@
         select.innerHTML = '';
         if (result.data) {
           result.data.forEach(m => {
-            select.innerHTML += `<option value="${m.machine_id}">${m.machine_id} - ${m.machine_name} (${m.department})</option>`;
+            select.innerHTML += `<option value="${m.machine_id}">${m.machine_id} - ${t(m.machine_name)} (${t(m.department)})</option>`;
           });
         }
       } catch (e) {
@@ -131,8 +140,8 @@
         if (result.success) {
           currentTicket = result.data;
           document.getElementById('disp_wo').innerText = currentTicket.wo_id;
-          document.getElementById('disp_op').innerText = `Bước ${currentTicket.step_order}: ${currentTicket.operation_name}`;
-          document.getElementById('disp_prod').innerText = `${currentTicket.product_id} - ${currentTicket.product_name}`;
+          document.getElementById('disp_op').innerText = t(`Bước ${currentTicket.step_order} - ${currentTicket.operation_name}`);
+          document.getElementById('disp_prod').innerText = `${currentTicket.product_id} - ${t(currentTicket.product_name)}`;
           document.getElementById('disp_target').innerText = `${currentTicket.target_qty} PCS`;
           document.getElementById('operatorActionCard').classList.remove('hidden');
         } else {
