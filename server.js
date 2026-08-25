@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 1. API MASTER DATA: SẢN PHẨM & NGUYÊN VẬT LIỆU
+// 1. MASTER DATA: SẢN PHẨM & NGUYÊN VẬT LIỆU
 app.get('/api/products', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM md_products ORDER BY product_id');
@@ -28,7 +28,6 @@ app.get('/api/materials', async (req, res) => {
   }
 });
 
-// 2. API MASTER DATA: BOM (BILL OF MATERIALS)
 app.get('/api/bom/:productId', async (req, res) => {
   try {
     const { productId } = req.params;
@@ -39,7 +38,7 @@ app.get('/api/bom/:productId', async (req, res) => {
       FROM md_bom b
       JOIN md_materials m ON b.material_id = m.material_id
       WHERE b.product_id = $1
-      ORDER BY b.bom_id
+      ORDER BY b.bom_id;
     `;
     const { rows } = await db.query(query, [productId]);
     res.json({ success: true, data: rows });
@@ -48,7 +47,6 @@ app.get('/api/bom/:productId', async (req, res) => {
   }
 });
 
-// 3. API MASTER DATA: MÁY MÓC & THIẾT BỊ
 app.get('/api/machines', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM md_machines ORDER BY machine_id');
@@ -58,49 +56,46 @@ app.get('/api/machines', async (req, res) => {
   }
 });
 
-// 4. API TẠO LỆNH SẢN XUẤT (WO) & TỰ ĐỘNG SINH JOB TICKETS THEO LƯU TRÌNH
+// 2. PHÁT LỆNH SẢN XUẤT + TỰ ĐỘNG XUẤT CẤP VẬT TƯ THEO BOM
 app.post('/api/work-orders', async (req, res) => {
   const { wo_id, product_id, plan_quantity, planned_start_date, planned_due_date } = req.body;
-  
   try {
     await db.query('BEGIN');
 
     // Tạo Work Order
     const woQuery = `
       INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, planned_start_date, planned_due_date, status)
-      VALUES ($1, $2, $3, $4, $5, 'RELEASED')
-      RETURNING *;
+      VALUES ($1, $2, $3, $4, $5, 'RELEASED') RETURNING *;
     `;
     await db.query(woQuery, [wo_id, product_id, plan_quantity, planned_start_date, planned_due_date]);
 
-    // Lấy lưu trình Routing của sản phẩm
+    // Tự động trừ tồn kho và cấp phát vật tư theo BOM
+    await db.query('SELECT allocate_wo_materials($1, $2, $3)', [wo_id, product_id, plan_quantity]);
+
+    // Lấy lưu trình Routing và sinh Job Tickets
     const routingQuery = `
-      SELECT r.step_order, r.operation_id, r.standard_time_minutes
-      FROM md_routings r
-      WHERE r.product_id = $1
-      ORDER BY r.step_order ASC;
+      SELECT r.step_order, r.operation_id
+      FROM md_routings r WHERE r.product_id = $1 ORDER BY r.step_order ASC;
     `;
     const { rows: steps } = await db.query(routingQuery, [product_id]);
 
-    // Tự động sinh Job Tickets
     for (const step of steps) {
       const ticketId = `${wo_id}-STEP${step.step_order}`;
-      const ticketQuery = `
-        INSERT INTO mes_job_tickets (ticket_id, wo_id, operation_id, step_order, target_qty, status)
-        VALUES ($1, $2, $3, $4, $5, 'PENDING');
-      `;
-      await db.query(ticketQuery, [ticketId, wo_id, step.operation_id, step.step_order, plan_quantity]);
+      await db.query(
+        `INSERT INTO mes_job_tickets (ticket_id, wo_id, operation_id, step_order, target_qty, status)
+         VALUES ($1, $2, $3, $4, $5, 'PENDING')`,
+        [ticketId, wo_id, step.operation_id, step.step_order, plan_quantity]
+      );
     }
 
     await db.query('COMMIT');
-    res.json({ success: true, message: `Đã phát lệnh ${wo_id} và tạo thành công ${steps.length} thẻ công đoạn QR!` });
+    res.json({ success: true, message: `Phát lệnh ${wo_id} thành công! Đã cấp phát NVL theo định mức BOM.` });
   } catch (err) {
     await db.query('ROLLBACK');
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 5. API LẤY DANH SÁCH WORK ORDERS & TICKETS
 app.get('/api/work-orders', async (req, res) => {
   try {
     const query = `
@@ -133,7 +128,7 @@ app.get('/api/work-orders/:woId/tickets', async (req, res) => {
   }
 });
 
-// 6. API QUÉT THẺ & THỰC THI SẢN XUẤT (SHOPFLOOR)
+// 3. THAO TÁC XƯỞNG (SHOPFLOOR SCAN & PRODUCTION)
 app.get('/api/shopfloor/scan/:ticketId', async (req, res) => {
   try {
     const { ticketId } = req.params;
@@ -157,16 +152,13 @@ app.post('/api/shopfloor/start', async (req, res) => {
   const { ticket_id, machine_id, operator_code } = req.body;
   try {
     await db.query('BEGIN');
-    const logQuery = `
-      INSERT INTO mes_production_logs (ticket_id, machine_id, operator_code, start_time)
-      VALUES ($1, $2, $3, NOW())
-      RETURNING log_id;
-    `;
-    const { rows } = await db.query(logQuery, [ticket_id, machine_id, operator_code]);
-    
+    const { rows } = await db.query(
+      `INSERT INTO mes_production_logs (ticket_id, machine_id, operator_code, start_time)
+       VALUES ($1, $2, $3, NOW()) RETURNING log_id`,
+      [ticket_id, machine_id, operator_code]
+    );
     await db.query(`UPDATE mes_job_tickets SET status = 'RUNNING' WHERE ticket_id = $1`, [ticket_id]);
     await db.query(`UPDATE md_machines SET current_status = 'RUNNING' WHERE machine_id = $1`, [machine_id]);
-    
     await db.query('COMMIT');
     res.json({ success: true, log_id: rows[0].log_id });
   } catch (err) {
@@ -179,17 +171,18 @@ app.post('/api/shopfloor/finish', async (req, res) => {
   const { ticket_id, log_id, good_qty, scrap_qty, defect_id } = req.body;
   try {
     await db.query('BEGIN');
-    await db.query(`
-      UPDATE mes_production_logs
-      SET end_time = NOW(), produced_good_qty = $1, produced_scrap_qty = $2
-      WHERE log_id = $3
-    `, [good_qty, scrap_qty, log_id]);
+    await db.query(
+      `UPDATE mes_production_logs
+       SET end_time = NOW(), produced_good_qty = $1, produced_scrap_qty = $2
+       WHERE log_id = $3`,
+      [good_qty, scrap_qty, log_id]
+    );
 
     if (scrap_qty > 0 && defect_id) {
-      await db.query(`
-        INSERT INTO mes_defect_logs (log_id, defect_id, defect_qty)
-        VALUES ($1, $2, $3)
-      `, [log_id, defect_id, scrap_qty]);
+      await db.query(
+        `INSERT INTO mes_defect_logs (log_id, defect_id, defect_qty) VALUES ($1, $2, $3)`,
+        [log_id, defect_id, scrap_qty]
+      );
     }
 
     const { rows: machineRow } = await db.query(`SELECT machine_id FROM mes_production_logs WHERE log_id = $1`, [log_id]);
@@ -197,13 +190,14 @@ app.post('/api/shopfloor/finish', async (req, res) => {
       await db.query(`UPDATE md_machines SET current_status = 'IDLE' WHERE machine_id = $1`, [machineRow[0].machine_id]);
     }
 
-    await db.query(`
-      UPDATE mes_job_tickets
-      SET good_qty = COALESCE(good_qty, 0) + $1,
-          scrap_qty = COALESCE(scrap_qty, 0) + $2,
-          status = 'COMPLETED'
-      WHERE ticket_id = $3
-    `, [good_qty, scrap_qty, ticket_id]);
+    await db.query(
+      `UPDATE mes_job_tickets
+       SET good_qty = COALESCE(good_qty, 0) + $1,
+           scrap_qty = COALESCE(scrap_qty, 0) + $2,
+           status = 'COMPLETED'
+       WHERE ticket_id = $3`,
+      [good_qty, scrap_qty, ticket_id]
+    );
 
     await db.query('COMMIT');
     res.json({ success: true, message: 'Hoàn thành ghi nhận sản lượng!' });
@@ -213,7 +207,64 @@ app.post('/api/shopfloor/finish', async (req, res) => {
   }
 });
 
-// 7. API DASHBOARD
+// 4. API TÍNH TOÁN OEE & HIỆU SUẤT THỜI GIAN THỰC (OEE CALCULATION)
+app.get('/api/dashboard/oee', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        m.machine_id,
+        m.machine_name,
+        m.current_status,
+        m.ideal_cycle_time,
+        COALESCE(SUM(l.produced_good_qty), 0) AS total_good,
+        COALESCE(SUM(l.produced_scrap_qty), 0) AS total_scrap,
+        COALESCE(SUM(EXTRACT(EPOCH FROM (l.end_time - l.start_time))), 0) AS total_operating_seconds
+      FROM md_machines m
+      LEFT JOIN mes_production_logs l ON m.machine_id = l.machine_id AND l.end_time IS NOT NULL
+      GROUP BY m.machine_id, m.machine_name, m.current_status, m.ideal_cycle_time
+      ORDER BY m.machine_id;
+    `;
+    const { rows } = await db.query(query);
+
+    const oeeData = rows.map(m => {
+      const totalParts = Number(m.total_good) + Number(m.total_scrap);
+      const operatingTime = Number(m.total_operating_seconds);
+      const idealCycle = Number(m.ideal_cycle_time) || 30;
+
+      // 1. Availability (Mặc định 95% khi máy hoạt động bình thường)
+      const availability = totalParts > 0 ? 0.95 : 0;
+
+      // 2. Performance = (Tổng SP * Thời gian chu kỳ chuẩn) / Thời gian máy chạy thực tế
+      let performance = 0;
+      if (operatingTime > 0 && totalParts > 0) {
+        performance = Math.min((totalParts * idealCycle) / operatingTime, 1.0);
+      }
+
+      // 3. Quality = Sản lượng Đạt (OK) / Tổng sản lượng (OK + NG)
+      const quality = totalParts > 0 ? Number(m.total_good) / totalParts : 0;
+
+      // OEE = A * P * Q
+      const oee = (availability * performance * quality) * 100;
+
+      return {
+        machine_id: m.machine_id,
+        machine_name: m.machine_name,
+        current_status: m.current_status,
+        total_good: Number(m.total_good),
+        total_scrap: Number(m.total_scrap),
+        availability: Math.round(availability * 100),
+        performance: Math.round(performance * 100),
+        quality: Math.round(quality * 100),
+        oee: Math.round(oee)
+      };
+    });
+
+    res.json({ success: true, data: oeeData });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.get('/api/dashboard/logs', async (req, res) => {
   try {
     const query = `
@@ -232,6 +283,4 @@ app.get('/api/dashboard/logs', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`MES Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`MES Server running on port ${PORT}`));

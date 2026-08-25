@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MES - Dashboard & ANDON Giám Sát Xưởng</title>
+  <title>MES - Dashboard & OEE Hiệu Suất Thiết Bị</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 p-6 min-h-screen">
@@ -12,22 +12,29 @@
     <!-- Header -->
     <div class="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
       <div>
-        <h1 class="text-xl font-black text-cyan-400">📊 DASHBOARD GIÁM SÁT SẢN XUẤT THỜI GIAN THỰC</h1>
-        <p class="text-xs text-slate-400">Hệ thống theo dõi tiến độ công đoạn & nhật ký thực thi</p>
+        <h1 class="text-xl font-black text-cyan-400">📊 DASHBOARD GIÁM SÁT NĂNG SUẤT & HIỆU SUẤT OEE</h1>
+        <p class="text-xs text-slate-400">Đo lường Khả năng sẵn sàng (A), Hiệu suất (P) và Chất lượng (Q) theo từng máy</p>
       </div>
       <div class="flex gap-2">
         <a href="/" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs px-4 py-2 rounded-lg transition">🏠 Trang Chủ</a>
-        <button onclick="loadAllData()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition">
-          🔄 Làm mới dữ liệu
-        </button>
+        <a href="/master-data.html" class="bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-xs px-4 py-2 rounded-lg transition">📦 Dữ Liệu Gốc</a>
       </div>
     </div>
 
-    <!-- 1. Tiến độ các Lệnh & Thẻ công đoạn -->
+    <!-- 1. BẢNG HIỆU SUẤT OEE THỜI GIAN THỰC -->
     <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-md space-y-4">
-      <h2 class="text-base font-bold text-white flex items-center gap-2">
-        <span>📋 Tiến độ Lệnh & Thẻ Công Đoạn (Job Tickets)</span>
+      <h2 class="text-base font-bold text-white flex items-center justify-between">
+        <span>⚙️ Chỉ Số Hiệu Suất Thiết Bị Tổng Thể (OEE Overview)</span>
+        <span class="text-xs bg-cyan-950 border border-cyan-700 text-cyan-300 px-3 py-1 rounded-full font-mono">Tự động cập nhật: 5s</span>
       </h2>
+      <div id="oeeGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card OEE từng máy render ở đây -->
+      </div>
+    </div>
+
+    <!-- 2. TIẾN ĐỘ THẺ CÔNG ĐOẠN (JOB TICKETS) -->
+    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-md space-y-4">
+      <h2 class="text-base font-bold text-white">📋 Tiến Độ Thẻ Công Đoạn Đang Thực Hiện</h2>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse">
           <thead>
@@ -38,7 +45,7 @@
               <th class="p-3 text-center">Mục Tiêu</th>
               <th class="p-3 text-center">Đạt (OK)</th>
               <th class="p-3 text-center">Hỏng (NG)</th>
-              <th class="p-3 text-center">Tỷ Lệ Đạt</th>
+              <th class="p-3 text-center">Tỷ Lệ</th>
               <th class="p-3 text-center">Trạng Thái</th>
             </tr>
           </thead>
@@ -49,34 +56,52 @@
       </div>
     </div>
 
-    <!-- 2. Nhật ký thực thi chi tiết tại máy -->
-    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-md space-y-4">
-      <h2 class="text-base font-bold text-white">⏱️ Nhật Ký Sản Xuất Gần Nhất (Production Logs)</h2>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="bg-slate-950 text-slate-400 border-b border-slate-700">
-              <th class="p-3">Log ID</th>
-              <th class="p-3">Mã Thẻ</th>
-              <th class="p-3">Máy</th>
-              <th class="p-3">Công Nhân</th>
-              <th class="p-3">Bắt Đầu</th>
-              <th class="p-3">Kết Thúc</th>
-              <th class="p-3 text-center">Sản Lượng (OK / NG)</th>
-            </tr>
-          </thead>
-          <tbody id="logsBody" class="divide-y divide-slate-700 font-mono">
-            <tr><td colspan="7" class="p-4 text-center text-slate-500">Đang tải...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
 
   <script>
-    async function loadAllData() {
-      // 1. Tải toàn bộ Job Tickets
+    async function loadOEE() {
+      const res = await fetch('/api/dashboard/oee');
+      const result = await res.json();
+      const grid = document.getElementById('oeeGrid');
+      grid.innerHTML = '';
+
+      result.data.forEach(m => {
+        const oeeColor = m.oee >= 80 ? 'text-emerald-400' : (m.oee >= 50 ? 'text-yellow-400' : 'text-rose-400');
+        const statusBadge = m.current_status === 'RUNNING'
+          ? '<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-900 text-emerald-300 font-bold animate-pulse">RUNNING</span>'
+          : '<span class="px-2 py-0.5 rounded text-[10px] bg-slate-700 text-slate-400 font-bold">IDLE</span>';
+
+        grid.innerHTML += `
+          <div class="bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="font-bold text-sm text-slate-200">${m.machine_id}</h3>
+                <p class="text-[11px] text-slate-400">${m.machine_name}</p>
+              </div>
+              ${statusBadge}
+            </div>
+
+            <div class="text-center py-2 bg-slate-950 rounded-lg border border-slate-800">
+              <div class="text-[11px] text-slate-400">CHỈ SỐ OEE</div>
+              <div class="text-3xl font-black ${oeeColor}">${m.oee}%</div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-1 text-center text-[10px] bg-slate-950/60 p-2 rounded">
+              <div><span class="text-slate-400 block">Sẵn sàng (A)</span><b class="text-cyan-300">${m.availability}%</b></div>
+              <div><span class="text-slate-400 block">Hiệu suất (P)</span><b class="text-cyan-300">${m.performance}%</b></div>
+              <div><span class="text-slate-400 block">Chất lượng (Q)</span><b class="text-cyan-300">${m.quality}%</b></div>
+            </div>
+
+            <div class="flex justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+              <span>Sản lượng Đạt: <b class="text-emerald-400">${m.total_good}</b></span>
+              <span>Lỗi: <b class="text-rose-400">${m.total_scrap}</b></span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    async function loadTickets() {
       try {
         const resOrders = await fetch('/api/work-orders');
         const dataOrders = await resOrders.json();
@@ -105,60 +130,26 @@
                     <td class="p-3 text-center">${t.target_qty}</td>
                     <td class="p-3 text-center text-emerald-400 font-bold">${t.good_qty}</td>
                     <td class="p-3 text-center text-rose-400 font-bold">${t.scrap_qty}</td>
-                    <td class="p-3 text-center">
-                      <div class="w-full bg-slate-700 rounded-full h-2 mb-1">
-                        <div class="bg-cyan-500 h-2 rounded-full" style="width: ${percent}%"></div>
-                      </div>
-                      <span class="text-[10px] text-slate-400">${percent}%</span>
-                    </td>
+                    <td class="p-3 text-center font-bold text-cyan-400">${percent}%</td>
                     <td class="p-3 text-center">${statusBadge}</td>
                   </tr>
                 `;
               });
             }
           }
-        } else {
-          tbodyTickets.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-500">Chưa có lệnh sản xuất nào.</td></tr>';
-        }
-      } catch (e) {
-        console.error(e);
-      }
-
-      // 2. Tải Nhật ký Production Logs
-      try {
-        const resLogs = await fetch('/api/dashboard/logs');
-        const dataLogs = await resLogs.json();
-        const tbodyLogs = document.getElementById('logsBody');
-        tbodyLogs.innerHTML = '';
-
-        if (dataLogs.data && dataLogs.data.length > 0) {
-          dataLogs.data.forEach(log => {
-            tbodyLogs.innerHTML += `
-              <tr class="hover:bg-slate-750">
-                <td class="p-3 text-slate-400">#${log.log_id}</td>
-                <td class="p-3 text-cyan-300">${log.ticket_id}</td>
-                <td class="p-3 text-yellow-300">${log.machine_id}</td>
-                <td class="p-3 text-slate-300">${log.operator_code}</td>
-                <td class="p-3 text-slate-400">${new Date(log.start_time).toLocaleTimeString()}</td>
-                <td class="p-3 text-slate-400">${log.end_time ? new Date(log.end_time).toLocaleTimeString() : 'Đang chạy...'}</td>
-                <td class="p-3 text-center">
-                  <span class="text-emerald-400 font-bold">${log.produced_good_qty || 0} OK</span> / 
-                  <span class="text-rose-400 font-bold">${log.produced_scrap_qty || 0} NG</span>
-                </td>
-              </tr>
-            `;
-          });
-        } else {
-          tbodyLogs.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">Chưa có nhật ký nào được ghi lại.</td></tr>';
         }
       } catch (e) {
         console.error(e);
       }
     }
 
-    loadAllData();
-    // Tự động cập nhật mỗi 5 giây
-    setInterval(loadAllData, 5000);
+    function refreshAll() {
+      loadOEE();
+      loadTickets();
+    }
+
+    refreshAll();
+    setInterval(refreshAll, 5000);
   </script>
 </body>
 </html>
