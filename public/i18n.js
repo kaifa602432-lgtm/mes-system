@@ -2,7 +2,6 @@
 // THƯ VIỆN ĐA NGÔN NGỮ ĐỘNG TOÀN HỆ THỐNG MES (VI - EN - ZH)
 // =========================================================================
 
-// 1. TỪ ĐIỂN CỐ ĐỊNH CHO GIAO DIỆN (UI LABELS)
 const mesTranslations = {
   vi: {
     nav_create_wo: "🏠 Phát Lệnh",
@@ -171,7 +170,6 @@ const mesTranslations = {
   }
 };
 
-// 2. TỪ ĐIỂN DỮ LIỆU ĐỘNG TỰ ĐỘNG (DYNAMIC DATA DICTIONARY)
 const dynamicLexicon = {
   // Phân xưởng
   "Xưởng Dập": { en: "Stamping Shop", zh: "沖壓車間" },
@@ -202,81 +200,89 @@ const dynamicLexicon = {
   // Trạng thái WIP
   "Đã hoàn thành": { en: "Completed", zh: "已完成" },
   "Chưa gia công": { en: "Pending", zh: "待加工" },
-  "Đang chờ": { en: "Queued", zh: "等待中" }
+  "Đang chờ": { en: "Queued", zh: "等待中" },
+
+  // Tên sự cố ANDON (Khớp chính xác chuỗi DB)
+  "Tỷ lệ phế phẩm tăng vọt tại xưởng Dập & Hàn": { en: "Scrap Rate Spikes at Stamping & Welding", zh: "沖壓與焊接車間報廢率劇增" },
+  "Hư hỏng máy dập chính MC-PRESS-01": { en: "Main Stamping Press MC-PRESS-01 Breakdown", zh: "主要沖床 MC-PRESS-01 突發故障" },
+  "Quá tải dây chuyền (2,000 PCS) & Tắc nghẽn CNC": { en: "Line Overload (2,000 PCS) & CNC Bottleneck", zh: "產線過載 (2,000 件) 與 CNC 瓶頸" },
+  "Thiếu máy phay CNC - Ứ đọng 800 phôi": { en: "Lack of CNC Machines - 800 WIP Queued", zh: "CNC 設備不足 - 積壓 800 件在製品" },
+  "Cạn kiệt Tôn cuộn SS400 (Chỉ còn 45kg)": { en: "SS400 Steel Coil Depleted (<45kg)", zh: "SS400 鋼卷耗盡 (庫存低於45kg)" },
+  "3 Công nhân bậc cao xưởng Hàn vắng mặt": { en: "3 Senior Welders Absent Suddenly", zh: "3 名資深焊工突發缺勤" },
+  "Đơn hàng khẩn cấp 1,500 PCS trong 48h": { en: "Emergency Rush Order 1,500 PCS in 48h", zh: "緊急插單 1,500 件 (48小時交期)" },
+  "Phế phẩm hàng loạt tại Xưởng Sơn (80 PCS hỏng)": { en: "Mass Coating Defects (80 PCS peeled)", zh: "塗裝車間批次不良 (80 件剝落)" },
+
+  // Tên lỗi Pareto
+  "Ba via dập vượt tiêu chuẩn": { en: "Stamping Burrs", zh: "沖壓毛邊過大" },
+  "Bong tróc màng sơn": { en: "Coating Peeling", zh: "漆面剝落" },
+  "Rỗ khí mối hàn": { en: "Welding Porosity", zh: "焊縫氣孔" },
+  "Sai dung sai kích thước CNC": { en: "CNC Dimension Tolerance", zh: "CNC 尺寸超差" }
 };
 
-// Hàm lấy ngôn ngữ lưu trữ
 function getSavedLanguage() {
   return localStorage.getItem('mes_language') || 'vi';
 }
 
-// Hàm chuyển đổi ngôn ngữ
 function setLanguage(lang) {
   localStorage.setItem('mes_language', lang);
   applyTranslations(lang);
 }
 
-// 3. HÀM DỊCH CHUỖI ĐỘNG THÔNG MINH (UNIVERSAL TRANSLATOR)
+// Hàm dịch chuỗi động thông minh
 function t(text) {
   if (!text) return '';
   const lang = getSavedLanguage();
   if (lang === 'vi') return text;
 
-  // 1. Kiểm tra khớp chính xác trong từ điển
-  if (dynamicLexicon[text] && dynamicLexicon[text][lang]) {
-    return dynamicLexicon[text][lang];
+  const cleanText = text.trim();
+
+  // 1. Khớp từ điển chính xác
+  if (dynamicLexicon[cleanText] && dynamicLexicon[cleanText][lang]) {
+    return dynamicLexicon[cleanText][lang];
   }
 
-  // 2. Tự động dịch mẫu khuyến nghị nhân lực động (Regex matching)
-  // Mẫu: THIẾU X CÔNG NHÂN (Cần điều động thêm hoặc tăng Y ca)
-  const deficitMatch = text.match(/THIẾU\s+(\d+)\s+CÔNG NHÂN(?:\s+\(Cần điều động thêm hoặc tăng\s+(\d+)\s+ca\))?/i);
+  // 2. Dịch các mẫu đề xuất máy móc CapEx
+  if (cleanText.includes("Cần tăng tốc độ băng chuyền buồng sơn") || cleanText.includes("Cần tăng tốc độ")) {
+    return lang === 'en' ? "Increase paint conveyor speed" : "需調高塗裝線懸掛鏈速度";
+  }
+  if (cleanText.includes("Cần bổ sung bàn gá lắp ráp phụ trợ") || cleanText.includes("Cần bổ sung bàn gá")) {
+    return lang === 'en' ? "Add auxiliary assembly fixtures" : "需增設輔助組裝夾治具與工作台";
+  }
+  if (cleanText.includes("ĐIỂM NGHẼN CNC")) {
+    const cncMatch = cleanText.match(/ĐIỂM NGHẼN CNC \((\d+)%\): Cần đầu tư thêm (\d+) máy CNC hoặc tăng (\d+) ca/i);
+    if (cncMatch) {
+      const load = cncMatch[1], mc = cncMatch[2], sh = cncMatch[3];
+      return lang === 'en' ? `CNC BOTTLENECK (${load}%): Invest +${mc} CNC machines or run +${sh} shifts` : `CNC 瓶頸 (${load}%): 需增購 ${mc} 台CNC或增加 ${sh} 個班次`;
+    }
+  }
+  if (cleanText.includes("Máy dập 160T hỏng")) {
+    return lang === 'en' ? "WARNING: 160T Press down! Transfer die to 250T Hydraulic Press" : "警告：160T沖床故障！需轉模至 250T 油壓機";
+  }
+  if (cleanText.includes("Tải cao: Cần kích hoạt thêm Robot Hàn")) {
+    return lang === 'en' ? "High load: Activate backup OTC Welding Robot 02" : "高負載：需啟動備用 OTC 焊接機器人 02";
+  }
+  if (cleanText.includes("Đủ công suất")) {
+    return lang === 'en' ? "Capacity OK (Ready)" : "產能充裕 (就緒)";
+  }
+
+  // 3. Dịch các mẫu khuyến nghị nhân sự
+  const deficitMatch = cleanText.match(/THIẾU\s+(\d+)\s+CÔNG NHÂN(?:\s+\(Cần điều động thêm hoặc tăng\s+(\d+)\s+ca\))?/i);
   if (deficitMatch) {
     const x = deficitMatch[1];
     const y = deficitMatch[2] || 1;
-    if (lang === 'en') return `DEFICIT ${x} WORKERS (Add staff or run +${y} shifts)`;
-    if (lang === 'zh') return `缺工 ${x} 人 (需調配人力或增加 ${y} 班次)`;
+    return lang === 'en' ? `DEFICIT ${x} WORKERS (Add staff or run +${y} shifts)` : `缺工 ${x} 人 (需調配人力或增加 ${y} 班次)`;
   }
-
-  // Mẫu: DƯ X CÔNG NHÂN (Có thể điều chuyển hỗ trợ xưởng khác)
-  const surplusMatch = text.match(/DƯ\s+(\d+)\s+CÔNG NHÂN/i);
+  const surplusMatch = cleanText.match(/DƯ\s+(\d+)\s+CÔNG NHÂN/i);
   if (surplusMatch) {
     const x = surplusMatch[1];
-    if (lang === 'en') return `SURPLUS ${x} WORKERS (Can reassign to other shops)`;
-    if (lang === 'zh') return `盈餘 ${x} 人 (可調度支援其他車間)`;
+    return lang === 'en' ? `SURPLUS ${x} WORKERS (Can reassign to other shops)` : `盈餘 ${x} 人 (可調度支援其他車間)`;
+  }
+  if (cleanText.includes("Đủ nhân sự")) {
+    return lang === 'en' ? "Optimal headcount balance" : "人力配置最佳平衡";
   }
 
-  if (text.includes("Đủ nhân sự")) {
-    if (lang === 'en') return "Optimal headcount balance";
-    if (lang === 'zh') return "人力配置最佳平衡";
-  }
-
-  // 3. Tự động dịch mẫu đề xuất máy móc CapEx
-  if (text.includes("ĐIỂM NGHẼN CNC")) {
-    const cncMatch = text.match(/ĐIỂM NGHẼN CNC \((\d+)%\): Cần đầu tư thêm (\d+) máy CNC hoặc tăng (\d+) ca/i);
-    if (cncMatch) {
-      const load = cncMatch[1], mc = cncMatch[2], sh = cncMatch[3];
-      if (lang === 'en') return `CNC BOTTLENECK (${load}%): Invest +${mc} CNC machines or run +${sh} shifts`;
-      if (lang === 'zh') return `CNC 瓶頸 (${load}%): 需增購 ${mc} 台CNC或增加 ${sh} 個班次`;
-    }
-  }
-
-  if (text.includes("Máy dập 160T hỏng")) {
-    if (lang === 'en') return "WARNING: 160T Press down! Transfer die to 250T Hydraulic Press";
-    if (lang === 'zh') return "警告：160T沖床故障！需轉模至 250T 油壓機";
-  }
-
-  if (text.includes("Tải cao: Cần kích hoạt thêm Robot Hàn")) {
-    if (lang === 'en') return "High load: Activate backup OTC Welding Robot 02";
-    if (lang === 'zh') return "高負載：需啟動備用 OTC 焊接機器人 02";
-  }
-
-  if (text.includes("Đủ công suất")) {
-    if (lang === 'en') return "Capacity OK (Ready)";
-    if (lang === 'zh') return "產能充裕 (就緒)";
-  }
-
-  // 4. Nếu là đoạn văn bản chưa có trong từ điển, tự động thay thế các cụm từ xưởng phổ biến
-  let translated = text;
+  // 4. Quét thay thế cụm từ lồng nhau
+  let translated = cleanText;
   Object.keys(dynamicLexicon).forEach(key => {
     if (translated.includes(key) && dynamicLexicon[key][lang]) {
       translated = translated.replaceAll(key, dynamicLexicon[key][lang]);
@@ -286,7 +292,6 @@ function t(text) {
   return translated;
 }
 
-// Áp dụng dịch cho toàn trang
 function applyTranslations(lang) {
   const tDict = mesTranslations[lang] || mesTranslations.vi;
   document.querySelectorAll('[data-i18n]').forEach(el => {

@@ -576,14 +576,19 @@
         const result = await res.json();
         const curLang = getSavedLanguage();
 
-        const labels = (result.data && result.data.length > 0) 
-          ? result.data.map(d => t(d.defect_name))
-          : [t('Ba via dập vượt tiêu chuẩn'), t('Bong tróc màng sơn'), t('Rỗ khí mối hàn')];
+        const rawData = (result.data && result.data.length > 0) ? result.data : [
+          { defect_name: 'Ba via dập vượt tiêu chuẩn', total_qty: 105 },
+          { defect_name: 'Bong tróc màng sơn', total_qty: 80 },
+          { defect_name: 'Rỗ khí mối hàn', total_qty: 50 },
+          { defect_name: 'Sai dung sai kích thước CNC', total_qty: 5 }
+        ];
 
-        const values = result.data && result.data.length > 0 ? result.data.map(d => Number(d.total_qty)) : [100, 50, 30];
+        const labels = rawData.map(d => t(d.defect_name));
+        const values = rawData.map(d => Number(d.total_qty));
 
         const ctx = document.getElementById('paretoChart').getContext('2d');
         if (paretoChartInstance) paretoChartInstance.destroy();
+        
         paretoChartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
@@ -600,10 +605,23 @@
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: function(items) {
+                    return items[0].label; // Đã dịch qua t()
+                  },
+                  label: function(context) {
+                    const labelName = curLang === 'en' ? 'Scrap (NG)' : (curLang === 'zh' ? '不良數量 (NG)' : 'Phế phẩm (NG)');
+                    return `${labelName}: ${context.raw} PCS`;
+                  }
+                }
+              }
+            },
             scales: {
               y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
-              x: { grid: { display: false } }
+              x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
             }
           }
         });
