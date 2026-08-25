@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MES - Phân Tích Dòng Chảy WIP, Lập Lịch APS & Giả Lập Sự Cố</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Thư viện Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-6 space-y-6">
@@ -23,7 +24,7 @@
       </div>
     </div>
 
-    <!-- KHU VỰC CÁC NÚT MÔ PHỎNG SỰ CỐ SẢN XUẤT (INCIDENT SIMULATION CONTROL CENTER) -->
+    <!-- KHU VỰC CÁC NÚT MÔ PHỎNG SỰ CỐ SẢN XUẤT -->
     <div class="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 border border-indigo-500/30 p-6 rounded-2xl shadow-2xl space-y-4">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
         <div>
@@ -98,7 +99,7 @@
       </div>
     </div>
 
-    <!-- 1. BẢNG NHẬT KÝ SỰ CỐ & HÀNH ĐỘNG KHẮC PHỤC (ANDON INCIDENT LOGS) -->
+    <!-- 1. BẢNG NHẬT KÝ SỰ CỐ (ANDON LOGS) -->
     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <h2 class="text-base font-bold text-white flex items-center gap-2">
@@ -125,7 +126,7 @@
       </div>
     </div>
 
-    <!-- 2. THEO DÕI DÒNG CHẢY TỒN BÁN THÀNH PHẨM (WIP FLOW TRACKING) -->
+    <!-- 2. MA TRẬN TỒN BÁN THÀNH PHẨM (WIP FLOW MATRIX) -->
     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <div>
@@ -158,10 +159,10 @@
       </div>
     </div>
 
-    <!-- 3. LẬP LỊCH APS & BIỂU ĐỒ PARETO -->
+    <!-- 3. LẬP LỊCH APS & BẢNG KẾ HOẠCH PHÂN BỔ MÁY/CA -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
-      <!-- Cột 1: Điều độ APS -->
+      <!-- Cột trái: Form điều độ APS -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4 lg:col-span-1">
         <h2 class="text-base font-bold text-cyan-400 border-b border-slate-800 pb-2">⏱️ Điều Độ Lập Lịch APS</h2>
         <form id="apsForm" class="space-y-3 text-xs">
@@ -187,13 +188,64 @@
         </form>
       </div>
 
-      <!-- Cột 2 & 3: Biểu đồ Pareto Lỗi & Năng suất -->
+      <!-- Cột phải: Bảng lịch APS chi tiết sau khi phân bổ -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4 lg:col-span-2">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <h2 class="text-base font-bold text-white">📅 Kế Hoạch Điều Độ Máy & Ca Sản Xuất (APS Matrix)</h2>
+          <button onclick="loadAPSSchedules()" class="text-xs bg-slate-800 hover:bg-slate-700 text-cyan-400 px-2.5 py-1 rounded border border-slate-700">🔄 Làm mới lịch</button>
+        </div>
+        <div class="overflow-x-auto max-h-64">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                <th class="p-2.5">Ngày</th>
+                <th class="p-2.5">Mã Thẻ</th>
+                <th class="p-2.5">Công Đoạn</th>
+                <th class="p-2.5">Thiết Bị Phân Bổ</th>
+                <th class="p-2.5">Ca Làm Việc</th>
+                <th class="p-2.5 text-center">Trạng Thái</th>
+              </tr>
+            </thead>
+            <tbody id="apsBody" class="divide-y divide-slate-800 font-mono">
+              <tr><td colspan="6" class="p-3 text-center text-slate-500">Đang tải lịch điều độ APS...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. BIỂU ĐỒ TRỰC QUAN PARETO LỖI & NĂNG SUẤT NHÂN SỰ -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Biểu đồ Pareto Lỗi -->
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
         <h2 class="text-base font-bold text-white border-b border-slate-800 pb-2">📊 Biểu Đồ Pareto Phân Tích Lỗi QC (Defect Pareto)</h2>
         <div class="h-64">
           <canvas id="paretoChart"></canvas>
         </div>
       </div>
+
+      <!-- Bảng Năng Suất Công Nhân -->
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+        <h2 class="text-base font-bold text-white border-b border-slate-800 pb-2">👷 Hiệu Suất & Năng Suất Công Nhân (Operator Output)</h2>
+        <div class="overflow-x-auto max-h-64">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                <th class="p-2.5">Mã NV</th>
+                <th class="p-2.5 text-center">Số Lượt Thực Hiện</th>
+                <th class="p-2.5 text-center text-emerald-400">Tổng Đạt (OK)</th>
+                <th class="p-2.5 text-center text-rose-400">Tổng Lỗi (NG)</th>
+                <th class="p-2.5 text-center">Tổng Giờ Gia Công</th>
+              </tr>
+            </thead>
+            <tbody id="operatorBody" class="divide-y divide-slate-800 font-mono">
+              <tr><td colspan="5" class="p-3 text-center text-slate-500">Đang tải dữ liệu nhân viên...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -202,6 +254,7 @@
     const API_BASE = '/api';
     let paretoChartInstance = null;
 
+    // 1. Kích hoạt kịch bản sự cố
     async function triggerScenario(type) {
       try {
         let endpoint = '';
@@ -221,6 +274,7 @@
       }
     }
 
+    // 2. Tải danh sách sự cố ANDON
     async function loadIncidents() {
       try {
         const res = await fetch(`${API_BASE}/analytics/incidents`);
@@ -254,6 +308,7 @@
       }
     }
 
+    // 3. Tải ma trận luân chuyển WIP
     async function loadWIPFlow() {
       try {
         const res = await fetch(`${API_BASE}/analytics/wip-flow`);
@@ -291,6 +346,7 @@
       }
     }
 
+    // 4. Nạp danh sách Lệnh vào Form APS
     async function loadWOForAPS() {
       try {
         const res = await fetch(`${API_BASE}/work-orders`);
@@ -307,6 +363,62 @@
       }
     }
 
+    // 5. Tải Kế hoạch điều độ APS
+    async function loadAPSSchedules() {
+      try {
+        const res = await fetch(`${API_BASE}/aps/schedules`);
+        const result = await res.json();
+        const tbody = document.getElementById('apsBody');
+        tbody.innerHTML = '';
+
+        if (!result.data || result.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-slate-500">Chưa có kế hoạch nào được lập.</td></tr>';
+          return;
+        }
+
+        result.data.forEach(s => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-900/50">
+              <td class="p-2.5 text-slate-400">${new Date(s.scheduled_date).toLocaleDateString()}</td>
+              <td class="p-2.5 text-cyan-300 font-bold">${s.ticket_id}</td>
+              <td class="p-2.5 text-slate-300 font-sans">${s.operation_name}</td>
+              <td class="p-2.5 text-yellow-300">${s.machine_name}</td>
+              <td class="p-2.5 text-slate-400 font-sans">${s.shift_name}</td>
+              <td class="p-2.5 text-center">
+                <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800">${s.status}</span>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // 6. Xử lý Gửi Form Lập lịch APS & Cập nhật ngay vào bảng bên phải
+    document.getElementById('apsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        wo_id: document.getElementById('aps_wo_id').value,
+        scheduled_date: document.getElementById('aps_date').value,
+        shift_id: document.getElementById('aps_shift').value
+      };
+
+      const res = await fetch(`${API_BASE}/aps/auto-schedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert(result.message);
+        loadAPSSchedules(); // Tự động nạp lại bảng kế hoạch ngay lập tức
+      } else {
+        alert('Lỗi: ' + result.error);
+      }
+    });
+
+    // 7. Tải Biểu đồ Pareto Lỗi QC
     async function loadPareto() {
       try {
         const res = await fetch(`${API_BASE}/analytics/defect-pareto`);
@@ -346,32 +458,43 @@
       }
     }
 
-    document.getElementById('apsForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const body = {
-        wo_id: document.getElementById('aps_wo_id').value,
-        scheduled_date: document.getElementById('aps_date').value,
-        shift_id: document.getElementById('aps_shift').value
-      };
+    // 8. Tải Năng suất Công nhân
+    async function loadOperators() {
+      try {
+        const res = await fetch(`${API_BASE}/analytics/operator-performance`);
+        const result = await res.json();
+        const tbody = document.getElementById('operatorBody');
+        tbody.innerHTML = '';
 
-      const res = await fetch(`${API_BASE}/aps/auto-schedule`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const result = await res.json();
-      if (result.success) {
-        alert(result.message);
-      } else {
-        alert('Lỗi: ' + result.error);
+        if (!result.data || result.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-500">Chưa có dữ liệu vận hành.</td></tr>';
+          return;
+        }
+
+        result.data.forEach(op => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-900/50">
+              <td class="p-2.5 text-cyan-300 font-bold">${op.operator_code}</td>
+              <td class="p-2.5 text-center">${op.total_jobs}</td>
+              <td class="p-2.5 text-center font-bold text-emerald-400">${op.total_good}</td>
+              <td class="p-2.5 text-center font-bold text-rose-400">${op.total_scrap}</td>
+              <td class="p-2.5 text-center text-slate-300">${op.total_working_minutes} phút</td>
+            </tr>
+          `;
+        });
+      } catch (e) {
+        console.error(e);
       }
-    });
+    }
 
+    // 9. Khởi chạy toàn bộ dữ liệu
     function loadAllData() {
       loadIncidents();
       loadWIPFlow();
       loadWOForAPS();
+      loadAPSSchedules();
       loadPareto();
+      loadOperators();
     }
 
     loadAllData();
