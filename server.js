@@ -299,45 +299,127 @@ app.get('/api/analytics/incidents', async (req, res) => {
   }
 });
 
+// =========================================================================
+// NÂNG CẤP THUẬT TOÁN APS: TÍNH TẢI MÁY, NĂNG SUẤT NHÂN SỰ & CẢNH BÁO QUÁ TẢI
+// =========================================================================
 app.post('/api/aps/auto-schedule', async (req, res) => {
   const { wo_id, scheduled_date, shift_id } = req.body;
   try {
     await db.query('BEGIN');
+
+    // 1. Lấy thông tin ca làm việc (khả dụng theo phút)
     const { rows: shiftRows } = await db.query('SELECT * FROM md_shifts WHERE shift_id = $1', [shift_id]);
     if (shiftRows.length === 0) throw new Error('Ca làm việc không hợp lệ');
+    const shiftMinutes = Number(shiftRows[0].working_hours) * 60; // ~435 phút
+
+    // 2. Lấy thông tin lệnh sản xuất và định mức công đoạn
+    const { rows: woRows } = await db.query('SELECT * FROM mes_work_orders WHERE wo_id = $1', [wo_id]);
+    if (woRows.length === 0) throw new Error('Không tìm thấy lệnh sản xuất');
+    const targetQty = Number(woRows[0].plan_quantity);
 
     const { rows: tickets } = await db.query(
-      `SELECT t.*, r.standard_time_minutes 
+      `SELECT t.*, r.standard_time_minutes, o.operation_name, o.department
        FROM mes_job_tickets t
        JOIN mes_work_orders w ON t.wo_id = w.wo_id
        JOIN md_routings r ON w.product_id = r.product_id AND t.step_order = r.step_order
+       JOIN md_operations o ON t.operation_id = o.operation_id
        WHERE t.wo_id = $1 ORDER BY t.step_order ASC`,
       [wo_id]
     );
 
+    // Xóa lịch cũ
     await db.query('DELETE FROM mes_aps_schedules WHERE wo_id = $1', [wo_id]);
 
     const machineMapping = {
-      10: 'MC-PRESS-01',
-      20: 'MC-CNC-01',
-      30: 'MC-WELD-01',
-      40: 'MC-PAINT-01',
-      50: 'MC-ASSY-01'
+      10: { mc: 'MC-PRESS-01', eff: 0.85, opCode: 'NV-088', opEff: 0.95 },
+      20: { mc: 'MC-CNC-01',   eff: 0.75, opCode: 'NV-102', opEff: 0.90 }, // CNC hay bị quá tải do chu kỳ dài
+      30: { mc: 'MC-WELD-01',  eff: 0.80, opCode: 'NV-045', opEff: 0.85 },
+      40: { mc: 'MC-PAINT-01', eff: 0.90, opCode: 'NV-019', opEff: 0.95 },
+      50: { mc: 'MC-ASSY-01',  eff: 0.95, opCode: 'NV-077', opEff: 0.90 }
     };
 
+    const scheduleResults = [];
+    let bottleneckFound = false;
+
     for (const t of tickets) {
-      const assignedMachine = machineMapping[t.step_order] || 'MC-PRESS-01';
+      const cfg = machineMapping[t.step_order] || { mc: 'MC-PRESS-01', eff: 0.8, opCode: 'NV-088', opEff: 0.9 };
+      
+      // Lấy chu kỳ lý thuyết chuẩn của máy
+      const { rows: mcRows } = await db.query('SELECT ideal_cycle_time, machine_name FROM md_machines WHERE machine_id = $1', [cfg.mc]);
+      const cycleTimeSec = mcRows.length > 0 ? Number(mcRows[0].ideal_cycle_time) : 30;
+
+      // Thời gian cần chạy thực tế (phút) = (Số lượng * CycleTime) / (OEE Máy * Hiệu suất NV * 60)
+      const combinedEfficiency = cfg.eff * cfg.opEff;
+      const requiredMinutes = Math.round(((targetQty * cycleTimeSec) / 60.0) / combinedEfficiency);
+
+      // Tỷ lệ tải công suất = Thời gian cần / Thời gian 1 ca
+      const loadPercent = Math.round((requiredMinutes / shiftMinutes) * 100);
+      const isOverloaded = loadPercent > 100;
+      if (isOverloaded) bottleneckFound = true;
+
+      const scheduleStatus = isOverloaded ? 'OVERLOAD_FULL' : 'OPTIMIZED';
+
       await db.query(
         `INSERT INTO mes_aps_schedules (wo_id, ticket_id, machine_id, shift_id, scheduled_date, assigned_operator, status)
-         VALUES ($1, $2, $3, $4, $5, 'NV-CHUYEN-TRUONG', 'SCHEDULED')`,
-        [wo_id, t.ticket_id, assignedMachine, shift_id, scheduled_date]
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [wo_id, t.ticket_id, cfg.mc, shift_id, scheduled_date, cfg.opCode, scheduleStatus]
       );
+
+      scheduleResults.push({
+        step_order: t.step_order,
+        operation_name: t.operation_name,
+        machine_id: cfg.mc,
+        machine_name: mcRows[0]?.machine_name,
+        operator_code: cfg.opCode,
+        machine_oee: Math.round(cfg.eff * 100),
+        operator_eff: Math.round(cfg.opEff * 100),
+        required_minutes: requiredMinutes,
+        shift_minutes: shiftMinutes,
+        load_percent: loadPercent,
+        status: scheduleStatus
+      });
+    }
+
+    // Nếu quá tải, tự động ghi nhận vào Nhật ký Sự cố ANDON
+    if (bottleneckFound) {
+      await db.query(`
+        INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_wo_id, description, action_taken)
+        VALUES ('APS_CAPACITY_OVERLOAD', 'Quá tải công suất điều độ APS cho lệnh ' || $1, 'APS_SCHEDULING', 'CRITICAL', $1,
+                'Tổng thời gian gia công vượt quá công suất định mức 1 ca. Điểm nghẽn nghiêm trọng tại Xưởng CNC.',
+                'Khuyến nghị: Tăng thêm Ca 2 & Ca 3 hoặc kích hoạt chạy song song MC-CNC-02, MC-CNC-03')
+      `, [wo_id]);
     }
 
     await db.query('COMMIT');
-    res.json({ success: true, message: `Lập lịch APS thành công cho lệnh ${wo_id} theo ${shiftRows[0].shift_name}!` });
+    res.json({
+      success: true,
+      message: `Đã tính toán điều độ APS cho lệnh ${wo_id}! (Tải lớn nhất: ${Math.max(...scheduleResults.map(s => s.load_percent))}%)`,
+      data: scheduleResults
+    });
   } catch (err) {
     await db.query('ROLLBACK');
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// API Phân tích Năng lực & Gợi ý Đầu tư Thiết bị (CapEx Simulation)
+app.get('/api/aps/capacity-analysis/:woId', async (req, res) => {
+  const { woId } = req.params;
+  try {
+    const { rows: wo } = await db.query('SELECT plan_quantity FROM mes_work_orders WHERE wo_id = $1', [woId]);
+    const qty = wo.length > 0 ? Number(wo[0].plan_quantity) : 1000;
+
+    // Giả lập ma trận tải theo 5 nhóm phân xưởng
+    const analysis = [
+      { dept: 'Xưởng Dập', current_machines: 3, cycle: 15, current_capacity_shift: 1500, demand: qty, load: Math.round((qty/1500)*100), suggestion: 'Đủ công suất (Tải ổn định)' },
+      { dept: 'Xưởng CNC', current_machines: 1, cycle: 45, current_capacity_shift: 500, demand: qty, load: Math.round((qty/500)*100), suggestion: qty > 500 ? `CẦN ĐẦU TƯ THÊM ${Math.ceil(qty/500) - 1} MÁY PHAY CNC HOẶC TĂNG ${Math.ceil(qty/500)} CA` : 'Đủ tải' },
+      { dept: 'Xưởng Hàn', current_machines: 2, cycle: 50, current_capacity_shift: 800, demand: qty, load: Math.round((qty/800)*100), suggestion: qty > 800 ? 'Cần chia tải thêm Robot Hàn OTC 02' : 'Đủ tải' },
+      { dept: 'Xưởng Sơn', current_machines: 2, cycle: 30, current_capacity_shift: 1200, demand: qty, load: Math.round((qty/1200)*100), suggestion: 'Đủ công suất' },
+      { dept: 'Xưởng Lắp Ráp', current_machines: 2, cycle: 20, current_capacity_shift: 1300, demand: qty, load: Math.round((qty/1300)*100), suggestion: 'Đủ công suất' }
+    ];
+
+    res.json({ success: true, data: analysis });
+  } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
