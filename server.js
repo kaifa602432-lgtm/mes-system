@@ -537,23 +537,60 @@ app.post('/api/simulator/scenario/mega-crisis', async (req, res) => {
     await db.query('BEGIN');
 
     // 1. Tạo đơn hàng áp lực cao
-    await db.query(`INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, status) VALUES ($1, 'FG-FRAME-01', 2000, 'RELEASED')`, [crisisWo]);
+    await db.query(
+      `INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, status) VALUES ($1, 'FG-FRAME-01', 2000, 'RELEASED')`,
+      [crisisWo]
+    );
 
-    // 2. Dập chạy tốt nhưng làm máy 1 bị kẹt
+    // 2. Tạo đầy đủ các thẻ Job Tickets cho lệnh khủng hoảng này
+    const routingSteps = [
+      { step: 10, op: 'OP_STAMP_01' },
+      { step: 20, op: 'OP_CNC_MILL_01' },
+      { step: 30, op: 'OP_WELD_01' },
+      { step: 40, op: 'OP_PAINT_01' },
+      { step: 50, op: 'OP_ASSY_01' }
+    ];
+
+    for (const r of routingSteps) {
+      await db.query(
+        `INSERT INTO mes_job_tickets (ticket_id, wo_id, operation_id, step_order, target_qty, status)
+         VALUES ($1, $2, $3, $4, 2000, 'RUNNING')
+         ON CONFLICT (ticket_id) DO NOTHING`,
+        [`${crisisWo}-STEP${r.step}`, crisisWo, r.op, r.step]
+      );
+    }
+
+    // 3. Đánh dấu máy dập 1 bị hỏng đột ngột
     await db.query(`UPDATE md_machines SET current_status = 'BREAKDOWN' WHERE machine_id = 'MC-PRESS-01'`);
     
-    // 3. Tồn đọng bán thành phẩm khủng khiếp tại CNC (Nghẽn cổ chai)
-    await db.query(`INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty) VALUES ($1, 'OP_STAMP_01', 10, 2000, 0, 1900)`, [crisisWo]);
-    await db.query(`INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty) VALUES ($1, 'OP_CNC_MILL_01', 20, 1900, 1600, 300)`, [crisisWo]);
+    // 4. Gây ứ đọng bán thành phẩm khủng khiếp tại CNC (Nghẽn cổ chai)
+    await db.query(
+      `INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty) VALUES ($1, 'OP_STAMP_01', 10, 2000, 0, 1900)
+       ON CONFLICT (wo_id, step_order) DO UPDATE SET wip_qty = 0, out_good_qty = 1900`,
+      [crisisWo]
+    );
+    await db.query(
+      `INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty) VALUES ($1, 'OP_CNC_MILL_01', 20, 1900, 1600, 300)
+       ON CONFLICT (wo_id, step_order) DO UPDATE SET in_qty = 1900, wip_qty = 1600, out_good_qty = 300`,
+      [crisisWo]
+    );
 
-    // 4. Phát sinh nhiều mã lỗi chất lượng đồng loạt
-    const { rows: l1 } = await db.query(`INSERT INTO mes_production_logs (ticket_id, machine_id, operator_code, start_time, end_time, produced_good_qty, produced_scrap_qty) VALUES ('${crisisWo}-STEP10', 'MC-PRESS-02', 'NV-088', NOW() - INTERVAL '3 hours', NOW(), 1900, 100) RETURNING log_id`);
+    // 5. Ghi nhận logs sản xuất và lỗi phế phẩm phát sinh
+    const { rows: l1 } = await db.query(
+      `INSERT INTO mes_production_logs (ticket_id, machine_id, operator_code, start_time, end_time, produced_good_qty, produced_scrap_qty)
+       VALUES ($1, 'MC-PRESS-02', 'NV-088', NOW() - INTERVAL '3 hours', NOW(), 1900, 100) RETURNING log_id`,
+      [`${crisisWo}-STEP10`]
+    );
     await db.query(`INSERT INTO mes_defect_logs (log_id, defect_id, defect_qty) VALUES ($1, 'DEF_STAMP_BURR', 100)`, [l1[0].log_id]);
 
-    const { rows: l2 } = await db.query(`INSERT INTO mes_production_logs (ticket_id, machine_id, operator_code, start_time, end_time, produced_good_qty, produced_scrap_qty) VALUES ('${crisisWo}-STEP30', 'MC-WELD-01', 'NV-045', NOW() - INTERVAL '2 hours', NOW(), 280, 50) RETURNING log_id`);
+    const { rows: l2 } = await db.query(
+      `INSERT INTO mes_production_logs (ticket_id, machine_id, operator_code, start_time, end_time, produced_good_qty, produced_scrap_qty)
+       VALUES ($1, 'MC-WELD-01', 'NV-045', NOW() - INTERVAL '2 hours', NOW(), 280, 50) RETURNING log_id`,
+      [`${crisisWo}-STEP30`]
+    );
     await db.query(`INSERT INTO mes_defect_logs (log_id, defect_id, defect_qty) VALUES ($1, 'DEF_WELD_POROSITY', 50)`, [l2[0].log_id]);
 
-    // 5. Ghi nhận nhật ký sự cố chuỗi
+    // 6. Ghi nhận nhật ký sự cố chuỗi
     await db.query(`
       INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken) VALUES
       ('CRISIS_OVERLOAD', 'Quá tải dây chuyền (2,000 PCS) & Tắc nghẽn CNC', 'RUSH_ORDER', 'CRITICAL', 'Đơn hàng lớn vượt 250% công suất bình thường gây quá tải toàn bộ các trạm', 'Kích hoạt phương án khẩn cấp: Tăng 3 ca sản xuất, huy động toàn bộ 14 máy'),
