@@ -91,7 +91,8 @@ app.post('/api/work-orders', async (req, res) => {
       const ticketId = `${wo_id}-STEP${step.step_order}`;
       await db.query(
         `INSERT INTO mes_job_tickets (ticket_id, wo_id, operation_id, step_order, target_qty, status)
-         VALUES ($1, $2, $3, $4, $5, 'PENDING')`,
+         VALUES ($1, $2, $3, $4, $5, 'PENDING')
+         ON CONFLICT (ticket_id) DO UPDATE SET target_qty = EXCLUDED.target_qty`,
         [ticketId, wo_id, step.operation_id, step.step_order, Number(plan_quantity)]
       );
 
@@ -313,12 +314,10 @@ app.post('/api/aps/auto-schedule', async (req, res) => {
   try {
     await db.query('BEGIN');
 
-    // 1. Lấy thông tin ca làm việc (khả dụng theo phút)
     const { rows: shiftRows } = await db.query('SELECT * FROM md_shifts WHERE shift_id = $1', [shift_id]);
     if (shiftRows.length === 0) throw new Error('Ca làm việc không hợp lệ');
     const shiftMinutes = Number(shiftRows[0].working_hours) * 60; // ~435 phút
 
-    // 2. Lấy thông tin lệnh sản xuất và định mức công đoạn
     const { rows: woRows } = await db.query('SELECT * FROM mes_work_orders WHERE wo_id = $1', [wo_id]);
     if (woRows.length === 0) throw new Error('Không tìm thấy lệnh sản xuất');
     const targetQty = Number(woRows[0].plan_quantity);
@@ -333,7 +332,6 @@ app.post('/api/aps/auto-schedule', async (req, res) => {
       [wo_id]
     );
 
-    // Xóa lịch cũ
     await db.query('DELETE FROM mes_aps_schedules WHERE wo_id = $1', [wo_id]);
 
     const machineMapping = {
@@ -404,19 +402,64 @@ app.post('/api/aps/auto-schedule', async (req, res) => {
   }
 });
 
-// API Phân tích Năng lực Thiết bị & Đề xuất Đầu tư CapEx
+// API Phân tích Năng lực Thiết bị & Đề xuất Đầu tư CapEx (Động theo máy hỏng và lệnh)
 app.get('/api/aps/capacity-analysis/:woId', async (req, res) => {
   const { woId } = req.params;
   try {
     const { rows: wo } = await db.query('SELECT plan_quantity FROM mes_work_orders WHERE wo_id = $1', [woId]);
-    const qty = wo.length > 0 ? Number(wo[0].plan_quantity) : 1000;
+    const qty = wo.length > 0 ? Number(wo[0].plan_quantity) : 300;
+
+    const { rows: brokenMachines } = await db.query(
+      `SELECT machine_id, department FROM md_machines WHERE current_status = 'BREAKDOWN'`
+    );
+    const brokenPress = brokenMachines.some(m => m.machine_id === 'MC-PRESS-01');
 
     const analysis = [
-      { dept: 'Xưởng Dập', current_machines: 3, cycle: 15, current_capacity_shift: 1500, demand: qty, load: Math.round((qty/1500)*100), suggestion: 'Đủ công suất (Tải ổn định)' },
-      { dept: 'Xưởng CNC', current_machines: 1, cycle: 45, current_capacity_shift: 500, demand: qty, load: Math.round((qty/500)*100), suggestion: qty > 500 ? `CẦN ĐẦU TƯ THÊM ${Math.ceil(qty/500) - 1} MÁY PHAY CNC HOẶC TĂNG ${Math.ceil(qty/500)} CA` : 'Đủ tải' },
-      { dept: 'Xưởng Hàn', current_machines: 2, cycle: 50, current_capacity_shift: 800, demand: qty, load: Math.round((qty/800)*100), suggestion: qty > 800 ? 'Cần chia tải thêm Robot Hàn OTC 02' : 'Đủ tải' },
-      { dept: 'Xưởng Sơn', current_machines: 2, cycle: 30, current_capacity_shift: 1200, demand: qty, load: Math.round((qty/1200)*100), suggestion: 'Đủ công suất' },
-      { dept: 'Xưởng Lắp Ráp', current_machines: 2, cycle: 20, current_capacity_shift: 1300, demand: qty, load: Math.round((qty/1300)*100), suggestion: 'Đủ công suất' }
+      {
+        dept: 'Xưởng Dập',
+        current_machines: brokenPress ? 2 : 3,
+        cycle: 15,
+        current_capacity_shift: brokenPress ? 1000 : 1500,
+        demand: qty,
+        load: Math.round((qty / (brokenPress ? 1000 : 1500)) * 100),
+        suggestion: brokenPress ? 'CẢNH BÁO: Máy dập 160T hỏng! Cần chuyển khuôn qua máy thủy lực 250T' : (qty > 1500 ? 'Quá tải dập, cần tăng ca' : 'Đủ công suất (Sẵn sàng)')
+      },
+      {
+        dept: 'Xưởng CNC',
+        current_machines: 1,
+        cycle: 45,
+        current_capacity_shift: 500,
+        demand: qty,
+        load: Math.round((qty / 500) * 100),
+        suggestion: qty > 500 ? `ĐIỂM NGHẼN CNC (${Math.round((qty/500)*100)}%): Cần đầu tư thêm ${Math.ceil(qty/500) - 1} máy CNC hoặc tăng ${Math.ceil(qty/500)} ca` : 'Đủ tải công suất'
+      },
+      {
+        dept: 'Xưởng Hàn',
+        current_machines: 2,
+        cycle: 50,
+        current_capacity_shift: 800,
+        demand: qty,
+        load: Math.round((qty / 800) * 100),
+        suggestion: qty > 800 ? 'Tải cao: Cần kích hoạt thêm Robot Hàn OTC 02' : 'Đủ công suất'
+      },
+      {
+        dept: 'Xưởng Sơn',
+        current_machines: 2,
+        cycle: 30,
+        current_capacity_shift: 1200,
+        demand: qty,
+        load: Math.round((qty / 1200) * 100),
+        suggestion: qty > 1200 ? 'Cần tăng tốc độ băng chuyền buồng sơn' : 'Đủ công suất'
+      },
+      {
+        dept: 'Xưởng Lắp Ráp',
+        current_machines: 2,
+        cycle: 20,
+        current_capacity_shift: 1300,
+        demand: qty,
+        load: Math.round((qty / 1300) * 100),
+        suggestion: qty > 1300 ? 'Cần bổ sung bàn gá lắp ráp phụ trợ' : 'Đủ công suất'
+      }
     ];
 
     res.json({ success: true, data: analysis });
@@ -428,49 +471,54 @@ app.get('/api/aps/capacity-analysis/:woId', async (req, res) => {
 // API Phân tích Cân bằng Nhân lực (Headcount & Manpower Planning)
 app.get('/api/analytics/manpower-analysis', async (req, res) => {
   try {
+    const { rows: absentInc } = await db.query(
+      `SELECT * FROM mes_incident_logs WHERE incident_code = 'INC_LABOR_ABSENT' AND status = 'OPEN'`
+    );
+    const isLaborAbsent = absentInc.length > 0;
+
     const { rows: demandRows } = await db.query(`
       SELECT COALESCE(SUM(plan_quantity), 0) as total_demand 
       FROM mes_work_orders 
       WHERE status IN ('RELEASED', 'RUNNING')
     `);
-    const totalQty = Number(demandRows[0].total_demand) || 500;
+    const totalQty = Number(demandRows[0].total_demand) || 300;
 
     const departments = [
-      { dept: 'Xưởng Dập', current_workers: 4, standard_cycle_sec: 15, worker_efficiency: 0.95, shift_minutes: 435 },
-      { dept: 'Xưởng CNC', current_workers: 3, standard_cycle_sec: 45, worker_efficiency: 0.90, shift_minutes: 435 },
-      { dept: 'Xưởng Hàn', current_workers: 4, standard_cycle_sec: 60, worker_efficiency: 0.85, shift_minutes: 435 },
-      { dept: 'Xưởng Sơn', current_workers: 3, standard_cycle_sec: 30, worker_efficiency: 0.95, shift_minutes: 435 },
-      { dept: 'Xưởng Lắp Ráp', current_workers: 6, standard_cycle_sec: 20, worker_efficiency: 0.90, shift_minutes: 435 }
+      { dept: 'Xưởng Dập', workers: 4, cycle: 15, eff: 0.95, shiftMin: 435 },
+      { dept: 'Xưởng CNC', workers: 3, cycle: 45, eff: 0.90, shiftMin: 435 },
+      { dept: 'Xưởng Hàn', workers: isLaborAbsent ? 1 : 4, cycle: 60, eff: 0.85, shiftMin: 435 },
+      { dept: 'Xưởng Sơn', workers: 3, cycle: 30, eff: 0.95, shiftMin: 435 },
+      { dept: 'Xưởng Lắp Ráp', workers: 6, cycle: 20, eff: 0.90, shiftMin: 435 }
     ];
 
     const manpowerReport = departments.map(d => {
-      const totalMinutesNeeded = Math.round((totalQty * d.standard_cycle_sec) / (60.0 * d.worker_efficiency));
-      const currentCapacityMinutes = d.current_workers * d.shift_minutes;
-      const workersRequired = Math.ceil(totalMinutesNeeded / d.shift_minutes);
-      const workerGap = workersRequired - d.current_workers;
-      const loadPercent = Math.round((totalMinutesNeeded / currentCapacityMinutes) * 100);
+      const minutesNeeded = Math.round((totalQty * d.cycle) / (60.0 * d.eff));
+      const currentCapacityMinutes = d.workers * d.shiftMin;
+      const workersRequired = Math.max(1, Math.ceil(minutesNeeded / d.shiftMin));
+      const workerGap = workersRequired - d.workers;
+      const loadPercent = Math.round((minutesNeeded / currentCapacityMinutes) * 100);
 
-      let action = 'Đủ nhân sự (Cân bằng)';
+      let action = 'Đủ nhân sự (Cân bằng tối ưu)';
       if (workerGap > 0) {
-        action = `THIẾU ${workerGap} CÔNG NHÂN (Hoặc cần tăng ${Math.ceil(workerGap / d.current_workers)} ca làm việc)`;
-      } else if (workerGap < 0) {
-        action = `DƯ THỪA ${Math.abs(workerGap)} CÔNG NHÂN (Có thể điều chuyển)`;
+        action = `THIẾU ${workerGap} CÔNG NHÂN (Cần điều động thêm hoặc tăng ${Math.ceil(workerGap / d.workers)} ca)`;
+      } else if (workerGap < 0 && loadPercent < 50) {
+        action = `DƯ ${Math.abs(workerGap)} CÔNG NHÂN (Có thể điều chuyển hỗ trợ xưởng khác)`;
       }
 
       return {
         department: d.dept,
-        current_workers: d.current_workers,
+        current_workers: d.workers,
         total_demand_qty: totalQty,
-        minutes_needed: totalMinutesNeeded,
+        minutes_needed: minutesNeeded,
         workers_required: workersRequired,
         worker_gap: workerGap,
         load_percent: loadPercent,
-        status: workerGap > 0 ? 'DEFICIT' : (workerGap === 0 ? 'BALANCED' : 'SURPLUS'),
+        status: workerGap > 0 ? 'DEFICIT' : (loadPercent >= 50 && loadPercent <= 100 ? 'BALANCED' : 'SURPLUS'),
         recommendation: action
       };
     });
 
-    res.json({ success: true, total_demand: totalQty, data: manpowerReport });
+    res.json({ success: true, total_demand: totalQty, is_incident: isLaborAbsent, data: manpowerReport });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -559,8 +607,8 @@ app.post('/api/simulator/scenario/lack-machine', async (req, res) => {
     await db.query(`INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty) VALUES ($1, 'OP_STAMP_01', 10, 800, 0, 800)`, [simWoId]);
     await db.query(`INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty) VALUES ($1, 'OP_CNC_MILL_01', 20, 800, 800, 0)`, [simWoId]);
     await db.query(`
-      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_wo_id, affected_machine_id, description, action_taken)
-      VALUES ('INC_NO_CAPACITY', 'Thiếu máy phay CNC - Ứ đọng 800 phôi', 'MACHINE', 'CRITICAL', $1, 'MC-CNC-01', 'Thời gian gia công CNC dài (45s/sp) gây thắt cổ chai toàn bộ dây chuyền', 'Cần kích hoạt thêm MC-CNC-02 và MC-CNC-03 để chia tải')
+      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_wo_id, affected_machine_id, description, action_taken, status)
+      VALUES ('INC_NO_CAPACITY', 'Thiếu máy phay CNC - Ứ đọng 800 phôi', 'MACHINE', 'CRITICAL', $1, 'MC-CNC-01', 'Thời gian gia công CNC dài (45s/sp) gây thắt cổ chai toàn bộ dây chuyền', 'Cần kích hoạt thêm MC-CNC-02 và MC-CNC-03 để chia tải', 'OPEN')
     `, [simWoId]);
     await db.query('COMMIT');
     res.json({ success: true, message: 'Đã kích hoạt sự cố: TẮC NGHẼN CỔ CHAI XƯỞNG CNC (800 PCS đang chờ)!' });
@@ -576,8 +624,8 @@ app.post('/api/simulator/scenario/machine-breakdown', async (req, res) => {
     await db.query('BEGIN');
     await db.query(`UPDATE md_machines SET current_status = 'BREAKDOWN' WHERE machine_id = 'MC-PRESS-01'`);
     await db.query(`
-      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_machine_id, description, action_taken)
-      VALUES ('INC_BREAKDOWN', 'Hư hỏng máy dập 160T AIDA', 'MACHINE', 'CRITICAL', 'MC-PRESS-01', 'Kẹt trục khuỷu và rò rỉ dầu thủy lực khi đang dập hàng', 'Phát tín hiệu ANDON Đỏ - Gọi khẩn đội Bảo Trì Cơ Điện (TPM)')
+      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_machine_id, description, action_taken, status)
+      VALUES ('INC_BREAKDOWN', 'Hư hỏng máy dập 160T AIDA', 'MACHINE', 'CRITICAL', 'MC-PRESS-01', 'Kẹt trục khuỷu và rò rỉ dầu thủy lực khi đang dập hàng', 'Phát tín hiệu ANDON Đỏ - Chuyển sang máy dập 250T', 'OPEN')
     `);
     await db.query('COMMIT');
     res.json({ success: true, message: 'Đã kích hoạt sự cố: MÁY DẬP MC-PRESS-01 BỊ HỎNG (Chuyển trạng thái BREAKDOWN & phát ANDON Đỏ)!' });
@@ -593,8 +641,8 @@ app.post('/api/simulator/scenario/material-shortage', async (req, res) => {
     await db.query('BEGIN');
     await db.query(`UPDATE md_materials SET current_stock = 45 WHERE material_id = 'MAT-COIL-01'`);
     await db.query(`
-      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken)
-      VALUES ('INC_MAT_SHORTAGE', 'Cạn kiệt Tôn cuộn SS400 (Chỉ còn 45kg)', 'MATERIAL', 'CRITICAL', 'Lô tôn cuộn nhập khẩu bị trễ hải quan, tồn kho thấp hơn mức an toàn 5000kg', 'Khóa phát lệnh mới cho các mã thân vỏ, chuyển lịch sản xuất các mã dùng ống thép')
+      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken, status)
+      VALUES ('INC_MAT_SHORTAGE', 'Cạn kiệt Tôn cuộn SS400 (Chỉ còn 45kg)', 'MATERIAL', 'CRITICAL', 'Lô tôn cuộn nhập khẩu bị trễ hải quan, tồn kho thấp hơn mức an toàn 5000kg', 'Khóa phát lệnh mới cho các mã thân vỏ, chuyển lịch sản xuất các mã dùng ống thép', 'OPEN')
     `);
     await db.query('COMMIT');
     res.json({ success: true, message: 'Đã kích hoạt sự cố: CẠN KIỆT TỒN KHO TÔN CUỘN SS400 (Dưới ngưỡng an toàn)!' });
@@ -608,10 +656,10 @@ app.post('/api/simulator/scenario/material-shortage', async (req, res) => {
 app.post('/api/simulator/scenario/labor-absent', async (req, res) => {
   try {
     await db.query(`
-      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken)
-      VALUES ('INC_LABOR_ABSENT', '3 Công nhân bậc cao xưởng Hàn vắng mặt', 'MANPOWER', 'MEDIUM', 'Ca 1 thiếu 3 thợ hàn MIG/MAG bậc 4/7 khiến dây chuyền hàn giảm 60% công suất', 'Điều chuyển tạm thời thợ hàn từ tổ mẫu và kích hoạt chế độ hàn Robot tự động')
+      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken, status)
+      VALUES ('INC_LABOR_ABSENT', '3 Công nhân bậc cao xưởng Hàn vắng mặt', 'MANPOWER', 'CRITICAL', 'Ca 1 thiếu 3 thợ hàn MIG/MAG bậc 4/7 khiến xưởng Hàn chỉ còn 1 thợ', 'Kích hoạt cảnh báo thiếu hụt nhân lực - Cần điều chuyển gấp thợ hàn dự phòng', 'OPEN')
     `);
-    res.json({ success: true, message: 'Đã kích hoạt sự cố: THIẾU NHÂN SỰ XƯỞNG HÀN (Giảm nhịp độ chuyền)!' });
+    res.json({ success: true, message: 'Đã kích hoạt sự cố: THIẾU NHÂN SỰ XƯỞNG HÀN (Chỉ còn 1 thợ, thiếu 3 người)!' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -627,8 +675,8 @@ app.post('/api/simulator/scenario/rush-order', async (req, res) => {
       VALUES ($1, 'FG-FRAME-01', 1500, NOW(), NOW() + INTERVAL '2 days', 'RELEASED')
     `, [rushWo]);
     await db.query(`
-      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_wo_id, description, action_taken)
-      VALUES ('INC_RUSH_ORDER', 'Đơn hàng khẩn cấp 1,500 PCS trong 48h', 'RUSH_ORDER', 'CRITICAL', $1, 'Khách hàng FDI yêu cầu xuất gấp 1,500 khung máy trong 2 ngày', 'Cần chạy APS tăng ca 3 (Ca đêm) và kích hoạt toàn bộ 14 máy trong nhà xưởng')
+      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_wo_id, description, action_taken, status)
+      VALUES ('INC_RUSH_ORDER', 'Đơn hàng khẩn cấp 1,500 PCS trong 48h', 'RUSH_ORDER', 'CRITICAL', $1, 'Khách hàng FDI yêu cầu xuất gấp 1,500 khung máy trong 2 ngày', 'Cần chạy APS tăng ca 3 (Ca đêm) và kích hoạt toàn bộ 14 máy trong nhà xưởng', 'OPEN')
     `, [rushWo]);
     await db.query('COMMIT');
     res.json({ success: true, message: `Đã kích hoạt sự cố: ĐƠN HÀNG KHẨN ${rushWo} (1,500 PCS - Yêu cầu tái lập lịch APS đa ca)!` });
@@ -644,7 +692,7 @@ app.post('/api/simulator/scenario/mass-defect', async (req, res) => {
     await db.query('BEGIN');
     const { rows: logRows } = await db.query(`
       INSERT INTO mes_production_logs (ticket_id, machine_id, operator_code, start_time, end_time, produced_good_qty, produced_scrap_qty)
-      VALUES ('WO-2026-001-STEP40', 'MC-PAINT-01', 'NV-019', NOW() - INTERVAL '1 hour', NOW(), 120, 80)
+      VALUES ('WO-2026-NORMAL-STEP40', 'MC-PAINT-01', 'NV-019', NOW() - INTERVAL '1 hour', NOW(), 120, 80)
       RETURNING log_id
     `);
     await db.query(`
@@ -652,8 +700,8 @@ app.post('/api/simulator/scenario/mass-defect', async (req, res) => {
       VALUES ($1, 'DEF_PAINT_PEEL', 80)
     `, [logRows[0].log_id]);
     await db.query(`
-      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_machine_id, description, action_taken)
-      VALUES ('INC_MASS_DEFECT', 'Phế phẩm hàng loạt tại Xưởng Sơn (80 PCS hỏng)', 'QUALITY', 'CRITICAL', 'MC-PAINT-01', 'Nhiệt độ sấy không đủ làm lớp sơn tĩnh điện bị bong tróc diện rộng', 'Tạm dừng chuyền sơn, xả bỏ dung dịch tẩy rửa và điều chỉnh đường đặc tính nhiệt lò sấy')
+      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_machine_id, description, action_taken, status)
+      VALUES ('INC_MASS_DEFECT', 'Phế phẩm hàng loạt tại Xưởng Sơn (80 PCS hỏng)', 'QUALITY', 'CRITICAL', 'MC-PAINT-01', 'Nhiệt độ sấy không đủ làm lớp sơn tĩnh điện bị bong tróc diện rộng', 'Tạm dừng chuyền sơn, xả bỏ dung dịch tẩy rửa và điều chỉnh đường đặc tính nhiệt lò sấy', 'OPEN')
     `);
     await db.query('COMMIT');
     res.json({ success: true, message: 'Đã kích hoạt sự cố: LỖI HÀNG LOẠT 80 PCS PHẾ PHẨM SƠN (Đẩy tỷ lệ lỗi lên Pareto)!' });
@@ -678,7 +726,7 @@ app.post('/api/simulator/flood-orders', async (req, res) => {
       await db.query(
         `INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, planned_start_date, planned_due_date, status)
          VALUES ($1, 'FG-FRAME-01', $2, NOW(), NOW() + ($3 || ' days')::INTERVAL, 'RELEASED')
-         ON CONFLICT (wo_id) DO UPDATE SET plan_quantity = EXCLUDED.plan_quantity`,
+         ON CONFLICT (wo_id) DO UPDATE SET plan_quantity = EXCLUDED.plan_quantity, status = 'RELEASED'`,
         [wo.id, wo.qty, wo.days]
       );
 
@@ -695,10 +743,10 @@ app.post('/api/simulator/flood-orders', async (req, res) => {
     }
 
     await db.query(`
-      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken)
+      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken, status)
       VALUES ('MASS_ORDER_SPIKE', 'Đột biến nạp 4 Lệnh sản xuất cực lớn (11,300 PCS)', 'RUSH_ORDER', 'CRITICAL',
               'Nhà máy tiếp nhận đồng loạt 4 dự án lớn vượt 400% công suất thiết kế thông thường',
-              'Cần chạy bài toán cân bằng nhân lực (Manpower Loading) và kích hoạt chế độ làm việc 3 ca liên tục')
+              'Cần chạy bài toán cân bằng nhân lực (Manpower Loading) và kích hoạt chế độ làm việc 3 ca liên tục', 'OPEN')
     `);
 
     await db.query('COMMIT');
@@ -765,10 +813,10 @@ app.post('/api/simulator/scenario/mega-crisis', async (req, res) => {
     await db.query(`INSERT INTO mes_defect_logs (log_id, defect_id, defect_qty) VALUES ($1, 'DEF_WELD_POROSITY', 50)`, [l2[0].log_id]);
 
     await db.query(`
-      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken) VALUES
-      ('CRISIS_OVERLOAD', 'Quá tải dây chuyền (2,000 PCS) & Tắc nghẽn CNC', 'RUSH_ORDER', 'CRITICAL', 'Đơn hàng lớn vượt 250% công suất bình thường gây quá tải toàn bộ các trạm', 'Kích hoạt phương án khẩn cấp: Tăng 3 ca sản xuất, huy động toàn bộ 14 máy'),
-      ('CRISIS_MC_DOWN', 'Hư hỏng máy dập chính MC-PRESS-01', 'MACHINE', 'CRITICAL', 'Máy dập 160T dừng do đứt xích truyền động', 'Chuyển toàn bộ khuôn dập sang máy dự phòng MC-PRESS-02 (250T)'),
-      ('CRISIS_DEFECT', 'Tỷ lệ phế phẩm tăng vọt tại xưởng Dập & Hàn', 'QUALITY', 'CRITICAL', 'Gia công gấp dẫn đến sai lệch thông số ép và rỗ khí mối hàn', 'Dừng 15 phút hiệu chỉnh robot hàn và thay dao tiện CNC')
+      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken, status) VALUES
+      ('CRISIS_OVERLOAD', 'Quá tải dây chuyền (2,000 PCS) & Tắc nghẽn CNC', 'RUSH_ORDER', 'CRITICAL', 'Đơn hàng lớn vượt 250% công suất bình thường gây quá tải toàn bộ các trạm', 'Kích hoạt phương án khẩn cấp: Tăng 3 ca sản xuất, huy động toàn bộ 14 máy', 'OPEN'),
+      ('CRISIS_MC_DOWN', 'Hư hỏng máy dập chính MC-PRESS-01', 'MACHINE', 'CRITICAL', 'Máy dập 160T dừng do đứt xích truyền động', 'Chuyển toàn bộ khuôn dập sang máy dự phòng MC-PRESS-02 (250T)', 'OPEN'),
+      ('CRISIS_DEFECT', 'Tỷ lệ phế phẩm tăng vọt tại xưởng Dập & Hàn', 'QUALITY', 'CRITICAL', 'Gia công gấp dẫn đến sai lệch thông số ép và rỗ khí mối hàn', 'Dừng 15 phút hiệu chỉnh robot hàn và thay dao tiện CNC', 'OPEN')
     `);
 
     await db.query('COMMIT');
@@ -782,7 +830,7 @@ app.post('/api/simulator/scenario/mega-crisis', async (req, res) => {
   }
 });
 
-// Phục hồi hệ thống về trạng thái ban đầu
+// Phục hồi hệ thống về trạng thái ban đầu sạch sẽ & CÂN BẰNG TỐI ƯU (300 PCS)
 app.post('/api/simulator/reset-all', async (req, res) => {
   try {
     await db.query('BEGIN');
@@ -791,9 +839,30 @@ app.post('/api/simulator/reset-all', async (req, res) => {
     await db.query(`UPDATE md_materials SET current_stock = 2000 WHERE material_id = 'MAT-PIPE-02'`);
     await db.query(`UPDATE md_materials SET current_stock = 850 WHERE material_id = 'MAT-PAINT-BLK'`);
     await db.query(`UPDATE md_materials SET current_stock = 5000 WHERE material_id = 'MAT-BOLT-M8'`);
+
     await db.query(`DELETE FROM mes_incident_logs`);
+    await db.query(`DELETE FROM mes_work_orders WHERE wo_id LIKE 'WO-MASS%' OR wo_id LIKE 'CRISIS%' OR wo_id LIKE 'WO-RUSH%' OR wo_id LIKE 'WO-BOTTLENECK%'`);
+    
+    await db.query(`
+      INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, status)
+      VALUES ('WO-2026-NORMAL', 'FG-FRAME-01', 300, 'RELEASED')
+      ON CONFLICT (wo_id) DO UPDATE SET plan_quantity = 300, status = 'RELEASED'
+    `);
+
+    await db.query(`DELETE FROM mes_wip_inventory WHERE wo_id != 'WO-2026-NORMAL'`);
+    await db.query(`
+      INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty, out_scrap_qty)
+      VALUES 
+      ('WO-2026-NORMAL', 'OP_STAMP_01', 10, 300, 300, 0, 0),
+      ('WO-2026-NORMAL', 'OP_CNC_MILL_01', 20, 0, 0, 0, 0),
+      ('WO-2026-NORMAL', 'OP_WELD_01', 30, 0, 0, 0, 0),
+      ('WO-2026-NORMAL', 'OP_PAINT_01', 40, 0, 0, 0, 0),
+      ('WO-2026-NORMAL', 'OP_ASSY_01', 50, 0, 0, 0, 0)
+      ON CONFLICT (wo_id, step_order) DO UPDATE SET in_qty = EXCLUDED.in_qty, wip_qty = EXCLUDED.wip_qty, out_good_qty = 0, out_scrap_qty = 0
+    `);
+
     await db.query('COMMIT');
-    res.json({ success: true, message: 'Đã hoàn phục toàn bộ máy móc (IDLE), tồn kho và xóa nhật ký sự cố!' });
+    res.json({ success: true, message: 'Đã phục hồi xưởng về trạng thái CHUẨN: Máy móc sẵn sàng, nhân lực cân bằng, tải tối ưu (300 PCS)!' });
   } catch (err) {
     await db.query('ROLLBACK');
     res.status(500).json({ success: false, error: err.message });

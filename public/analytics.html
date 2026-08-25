@@ -304,7 +304,7 @@
           alert('Lỗi: ' + result.error);
         }
       } catch (err) {
-        alert('Không thể kết nối máy chủ!');
+        alert('Không thể kết nối đến máy chủ!');
       }
     }
 
@@ -338,12 +338,19 @@
 
         if (result.data) {
           result.data.forEach(m => {
-            const isDeficit = m.worker_gap > 0;
-            const statusBadge = isDeficit
-              ? `<span class="px-2 py-0.5 rounded text-[10px] bg-rose-950 border border-rose-700 text-rose-300 font-bold animate-pulse">THIẾU ${m.worker_gap} NGƯỜI</span>`
-              : (m.worker_gap === 0 
-                ? `<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">CÂN BẰNG</span>`
-                : `<span class="px-2 py-0.5 rounded text-[10px] bg-blue-950 border border-blue-700 text-blue-300 font-bold">DƯ ${Math.abs(m.worker_gap)} NGƯỜI</span>`);
+            let statusBadge = '';
+            let loadTextColor = '';
+
+            if (m.load_percent > 100) {
+              statusBadge = `<span class="px-2.5 py-1 rounded text-[10px] bg-rose-950 border border-rose-700 text-rose-300 font-bold animate-pulse">🔥 THIẾU ${m.worker_gap} NGƯỜI</span>`;
+              loadTextColor = 'text-rose-400 font-black';
+            } else if (m.load_percent >= 50 && m.load_percent <= 100) {
+              statusBadge = `<span class="px-2.5 py-1 rounded text-[10px] bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">✅ CÂN BẰNG TỐI ƯU</span>`;
+              loadTextColor = 'text-emerald-400 font-bold';
+            } else {
+              statusBadge = `<span class="px-2.5 py-1 rounded text-[10px] bg-blue-950 border border-blue-700 text-blue-300 font-bold">ℹ️ DƯ ${Math.abs(m.worker_gap)} NGƯỜI</span>`;
+              loadTextColor = 'text-blue-400 font-medium';
+            }
 
             tbody.innerHTML += `
               <tr class="hover:bg-slate-900/50">
@@ -351,9 +358,9 @@
                 <td class="p-3 text-center font-bold text-slate-300">${m.current_workers} công nhân</td>
                 <td class="p-3 text-center">${m.minutes_needed.toLocaleString()} phút</td>
                 <td class="p-3 text-center font-bold text-cyan-300">${m.workers_required} người</td>
-                <td class="p-3 text-center font-bold ${m.load_percent > 100 ? 'text-rose-400' : 'text-emerald-400'}">${m.load_percent}%</td>
+                <td class="p-3 text-center ${loadTextColor}">${m.load_percent}%</td>
                 <td class="p-3 text-center font-sans">${statusBadge}</td>
-                <td class="p-3 font-sans ${isDeficit ? 'text-amber-300 font-bold' : 'text-slate-400'}">${m.recommendation}</td>
+                <td class="p-3 font-sans ${m.worker_gap > 0 ? 'text-amber-300 font-bold' : 'text-slate-400'}">${m.recommendation}</td>
               </tr>
             `;
           });
@@ -428,7 +435,7 @@
       if (result.data) {
         result.data.forEach(c => {
           const isOver = c.load > 100;
-          const barColor = isOver ? 'bg-rose-500' : 'bg-cyan-500';
+          const barColor = isOver ? 'bg-rose-500' : (c.load >= 50 ? 'bg-emerald-500' : 'bg-blue-500');
           const sugColor = isOver ? 'text-amber-300 font-bold' : 'text-slate-400';
 
           tbody.innerHTML += `
@@ -453,99 +460,113 @@
 
     // 6. Tải danh mục sự cố
     async function loadIncidents() {
-      const res = await fetch(`${API_BASE}/analytics/incidents`);
-      const result = await res.json();
-      const tbody = document.getElementById('incidentBody');
-      tbody.innerHTML = '';
-      if (!result.data || result.data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-500">Chưa có sự cố nào.</td></tr>';
-        return;
+      try {
+        const res = await fetch(`${API_BASE}/analytics/incidents`);
+        const result = await res.json();
+        const tbody = document.getElementById('incidentBody');
+        tbody.innerHTML = '';
+        if (result.data) {
+          result.data.forEach(inc => {
+            tbody.innerHTML += `
+              <tr class="hover:bg-slate-900/50">
+                <td class="p-2.5 text-slate-400 font-mono">${new Date(inc.reported_at).toLocaleTimeString()}</td>
+                <td class="p-2.5 text-cyan-300 font-mono font-bold">${inc.incident_code}</td>
+                <td class="p-2.5 text-white font-sans">${inc.incident_name}</td>
+                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-800">${inc.severity}</span></td>
+              </tr>
+            `;
+          });
+        }
+      } catch (e) {
+        console.error(e);
       }
-      result.data.forEach(inc => {
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-900/50">
-            <td class="p-2.5 text-slate-400 font-mono">${new Date(inc.reported_at).toLocaleTimeString()}</td>
-            <td class="p-2.5 text-cyan-300 font-mono font-bold">${inc.incident_code}</td>
-            <td class="p-2.5 text-white font-sans">${inc.incident_name}</td>
-            <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-800">${inc.severity}</span></td>
-          </tr>
-        `;
-      });
     }
 
     // 7. Tải WIP Flow
     async function loadWIPFlow() {
-      const res = await fetch(`${API_BASE}/analytics/wip-flow`);
-      const result = await res.json();
-      const tbody = document.getElementById('wipBody');
-      tbody.innerHTML = '';
-      if (result.data) {
-        result.data.forEach(w => {
-          const wipBadge = Number(w.wip_qty) > 0 
-            ? `<span class="px-2 py-0.5 rounded text-[10px] bg-amber-950 border border-amber-700 text-amber-300 font-bold">${w.wip_qty} PCS ĐANG CHỜ</span>`
-            : `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400">TRỐNG</span>`;
+      try {
+        const res = await fetch(`${API_BASE}/analytics/wip-flow`);
+        const result = await res.json();
+        const tbody = document.getElementById('wipBody');
+        tbody.innerHTML = '';
+        if (result.data) {
+          result.data.forEach(w => {
+            const wipBadge = Number(w.wip_qty) > 0 
+              ? `<span class="px-2 py-0.5 rounded text-[10px] bg-amber-950 border border-amber-700 text-amber-300 font-bold">${w.wip_qty} PCS ĐANG CHỜ</span>`
+              : `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400">TRỐNG</span>`;
 
-          tbody.innerHTML += `
-            <tr class="hover:bg-slate-900/50">
-              <td class="p-2.5 font-bold text-cyan-400">${w.wo_id}</td>
-              <td class="p-2.5 font-sans">${w.product_name}</td>
-              <td class="p-2.5 font-sans font-semibold">Bước ${w.step_order} - ${w.operation_name}</td>
-              <td class="p-2.5 text-center">${w.in_qty}</td>
-              <td class="p-2.5 text-center">${wipBadge}</td>
-              <td class="p-2.5 text-center text-emerald-400 font-bold">${w.out_good_qty}</td>
-              <td class="p-2.5 text-center text-rose-400 font-bold">${w.out_scrap_qty}</td>
-              <td class="p-2.5 text-center font-sans text-[10px] text-slate-400">${Number(w.out_good_qty) > 0 ? 'Đã luân chuyển' : 'Chưa chạy'}</td>
-            </tr>
-          `;
-        });
+            tbody.innerHTML += `
+              <tr class="hover:bg-slate-900/50">
+                <td class="p-2.5 font-bold text-cyan-400">${w.wo_id}</td>
+                <td class="p-2.5 font-sans">${w.product_name}</td>
+                <td class="p-2.5 font-sans font-semibold">Bước ${w.step_order} - ${w.operation_name}</td>
+                <td class="p-2.5 text-center">${w.in_qty}</td>
+                <td class="p-2.5 text-center">${wipBadge}</td>
+                <td class="p-2.5 text-center text-emerald-400 font-bold">${w.out_good_qty}</td>
+                <td class="p-2.5 text-center text-rose-400 font-bold">${w.out_scrap_qty}</td>
+                <td class="p-2.5 text-center font-sans text-[10px] text-slate-400">${Number(w.out_good_qty) > 0 ? 'Đã luân chuyển' : 'Chưa chạy'}</td>
+              </tr>
+            `;
+          });
+        }
+      } catch (e) {
+        console.error(e);
       }
     }
 
     // 8. Tải Lệnh vào Dropdown
     async function loadWOForAPS() {
-      const res = await fetch(`${API_BASE}/work-orders`);
-      const result = await res.json();
-      const select = document.getElementById('aps_wo_id');
-      select.innerHTML = '';
-      if (result.data) {
-        result.data.forEach(wo => {
-          select.innerHTML += `<option value="${wo.wo_id}">${wo.wo_id} - ${wo.product_name} (${wo.plan_quantity} PCS)</option>`;
-        });
+      try {
+        const res = await fetch(`${API_BASE}/work-orders`);
+        const result = await res.json();
+        const select = document.getElementById('aps_wo_id');
+        select.innerHTML = '';
+        if (result.data) {
+          result.data.forEach(wo => {
+            select.innerHTML += `<option value="${wo.wo_id}">${wo.wo_id} - ${wo.product_name} (${wo.plan_quantity} PCS)</option>`;
+          });
+        }
+      } catch (e) {
+        console.error(e);
       }
     }
 
     // 9. Tải Biểu đồ Pareto Lỗi QC
     async function loadPareto() {
-      const res = await fetch(`${API_BASE}/analytics/defect-pareto`);
-      const result = await res.json();
-      const labels = result.data && result.data.length > 0 ? result.data.map(d => d.defect_name) : ['Ba via dập', 'Sai kích thước CNC', 'Rỗ khí hàn'];
-      const values = result.data && result.data.length > 0 ? result.data.map(d => Number(d.total_qty)) : [100, 50, 30];
+      try {
+        const res = await fetch(`${API_BASE}/analytics/defect-pareto`);
+        const result = await res.json();
+        const labels = result.data && result.data.length > 0 ? result.data.map(d => d.defect_name) : ['Ba via dập', 'Sai kích thước CNC', 'Rỗ khí hàn'];
+        const values = result.data && result.data.length > 0 ? result.data.map(d => Number(d.total_qty)) : [100, 50, 30];
 
-      const ctx = document.getElementById('paretoChart').getContext('2d');
-      if (paretoChartInstance) paretoChartInstance.destroy();
-      paretoChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Phế phẩm (NG)',
-            data: values,
-            backgroundColor: 'rgba(244, 63, 94, 0.7)',
-            borderColor: 'rgb(244, 63, 94)',
-            borderWidth: 1.5,
-            borderRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
-            x: { grid: { display: false } }
+        const ctx = document.getElementById('paretoChart').getContext('2d');
+        if (paretoChartInstance) paretoChartInstance.destroy();
+        paretoChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Phế phẩm (NG)',
+              data: values,
+              backgroundColor: 'rgba(244, 63, 94, 0.7)',
+              borderColor: 'rgb(244, 63, 94)',
+              borderWidth: 1.5,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+              x: { grid: { display: false } }
+            }
           }
-        }
-      });
+        });
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     function loadAllData() {
