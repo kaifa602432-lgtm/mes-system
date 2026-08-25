@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MES - Hệ Thống Điều Hành Sản Xuất</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Thư viện tạo mã QR -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="bg-slate-100 p-6">
+  <div class="max-w-6xl mx-auto space-y-6">
+    
+    <!-- Tiêu đề -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800 tracking-tight">HỆ THỐNG MES - QUẢN LÝ SẢN XUẤT</h1>
+        <p class="text-slate-500 text-sm">Theo dõi tiến độ, lệnh sản xuất & thẻ công đoạn QR</p>
+      </div>
+      <div class="flex gap-2">
+        <a href="/dashboard.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white hover:bg-slate-700">📊 Xem Dashboard</a>
+        <a href="/operator.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-500">📱 Trạm Quét QR</a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Cột 1: Form tạo Work Order -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-1">
+        <h2 class="text-lg font-bold text-slate-800 mb-4 border-b pb-2">➕ Tạo Lệnh Sản Xuất</h2>
+        <form id="woForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Mã Lệnh (WO ID)</label>
+            <input type="text" id="wo_id" value="WO-2026-001" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Sản phẩm</label>
+            <select id="product_id" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+              <!-- Load từ API -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Số lượng kế hoạch</label>
+            <input type="number" id="plan_quantity" value="500" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" required>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Bắt đầu</label>
+              <input type="date" id="planned_start_date" class="w-full border rounded-lg p-2 text-xs" value="2026-08-25">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Hoàn thành</label>
+              <input type="date" id="planned_due_date" class="w-full border rounded-lg p-2 text-xs" value="2026-08-30">
+            </div>
+          </div>
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+            Phát Lệnh (Release WO)
+          </button>
+        </form>
+      </div>
+
+      <!-- Cột 2 & 3: Danh sách Lệnh sản xuất -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-2">
+        <h2 class="text-lg font-bold text-slate-800 mb-4 border-b pb-2">📋 Danh Sách Lệnh Sản Xuất</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-50 text-slate-600 border-b">
+                <th class="p-3">Mã WO</th>
+                <th class="p-3">Tên Sản Phẩm</th>
+                <th class="p-3 text-center">SL Kế Hoạch</th>
+                <th class="p-3 text-center">Trạng Thái</th>
+                <th class="p-3 text-center">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="woTableBody" class="divide-y text-slate-700">
+              <tr>
+                <td colspan="5" class="p-4 text-center text-slate-400">Đang tải dữ liệu...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Khu vực hiển thị Thẻ Công Đoạn & Mã QR -->
+    <div id="ticketSection" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hidden">
+      <h2 class="text-lg font-bold text-slate-800 mb-2 border-b pb-2 flex justify-between items-center">
+        <span>🏷️ Thẻ Công Đoạn & Mã QR Cho Lệnh: <span id="currentWoLabel" class="text-blue-600"></span></span>
+        <button onclick="window.print()" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded-lg text-slate-700">🖨️ In Thẻ</button>
+      </h2>
+      <div id="ticketList" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+        <!-- Mã QR và thẻ công đoạn sẽ render ở đây -->
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+
+    // 1. Tải danh mục sản phẩm vào dropdown
+    async function loadProducts() {
+      const res = await fetch(`${API_BASE}/products`);
+      const result = await res.json();
+      const select = document.getElementById('product_id');
+      select.innerHTML = '';
+      result.data.filter(p => p.product_type === 'FINISHED_GOOD' || p.product_type === 'SEMI_FINISHED').forEach(p => {
+        select.innerHTML += `<option value="${p.product_id}">${p.product_id} - ${p.product_name}</option>`;
+      });
+    }
+
+    // 2. Tải danh sách Work Order
+    async function loadWorkOrders() {
+      const res = await fetch(`${API_BASE}/work-orders`);
+      const result = await res.json();
+      const tbody = document.getElementById('woTableBody');
+      tbody.innerHTML = '';
+
+      if (!result.data || result.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Chưa có lệnh sản xuất nào. Hãy tạo lệnh mới!</td></tr>';
+        return;
+      }
+
+      result.data.forEach(wo => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-3 font-semibold text-blue-600">${wo.wo_id}</td>
+            <td class="p-3">${wo.product_name}</td>
+            <td class="p-3 text-center font-bold">${wo.plan_quantity} ${wo.unit}</td>
+            <td class="p-3 text-center">
+              <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">${wo.status}</span>
+            </td>
+            <td class="p-3 text-center">
+              <button onclick="viewTickets('${wo.wo_id}')" class="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1 rounded text-xs font-semibold">
+                Xem Thẻ QR
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // 3. Xem danh sách Thẻ công đoạn & Sinh mã QR
+    async function viewTickets(woId) {
+      document.getElementById('ticketSection').classList.remove('hidden');
+      document.getElementById('currentWoLabel').innerText = woId;
+      const res = await fetch(`${API_BASE}/work-orders/${woId}/tickets`);
+      const result = await res.json();
+      const container = document.getElementById('ticketList');
+      container.innerHTML = '';
+
+      result.tickets.forEach(t => {
+        const qrId = `qr-${t.ticket_id}`;
+        container.innerHTML += `
+          <div class="border border-slate-300 rounded-lg p-4 bg-slate-50 flex flex-col items-center text-center space-y-2">
+            <div class="text-xs font-bold bg-slate-800 text-white px-2 py-0.5 rounded">Bước ${t.step_order}: ${t.operation_name}</div>
+            <div class="text-xs text-slate-600">Thẻ: <span class="font-mono font-bold">${t.ticket_id}</span></div>
+            <div id="${qrId}" class="p-2 bg-white rounded border"></div>
+            <div class="text-xs text-slate-500">Mục tiêu: <b>${t.target_qty}</b> PCS</div>
+          </div>
+        `;
+        setTimeout(() => {
+          new QRCode(document.getElementById(qrId), {
+            text: t.ticket_id,
+            width: 110,
+            height: 110
+          });
+        }, 50);
+      });
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    // 4. Bắt sự kiện Tạo Lệnh
+    document.getElementById('woForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        wo_id: document.getElementById('wo_id').value,
+        product_id: document.getElementById('product_id').value,
+        plan_quantity: Number(document.getElementById('plan_quantity').value),
+        planned_start_date: document.getElementById('planned_start_date').value,
+        planned_due_date: document.getElementById('planned_due_date').value
+      };
+
+      const res = await fetch(`${API_BASE}/work-orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert(result.message);
+        loadWorkOrders();
+        viewTickets(body.wo_id);
+      } else {
+        alert('Lỗi: ' + result.error);
+      }
+    });
+
+    // Chạy khi tải trang
+    loadProducts();
+    loadWorkOrders();
+  </script>
+</body>
+</html>
