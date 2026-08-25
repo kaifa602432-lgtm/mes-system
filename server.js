@@ -56,7 +56,7 @@ app.get('/api/machines', async (req, res) => {
   }
 });
 
-// 2. PHÁT LỆNH SẢN XUẤT + TỰ ĐỘNG XUẤT CẤP VẬT TƯ THEO BOM
+// 2. PHÁT LỆNH SẢN XUẤT (WO) + TỰ ĐỘNG XUẤT CẤP VẬT TƯ THEO ĐỊNH MỨC BOM
 app.post('/api/work-orders', async (req, res) => {
   const { wo_id, product_id, plan_quantity, planned_start_date, planned_due_date } = req.body;
   try {
@@ -67,10 +67,14 @@ app.post('/api/work-orders', async (req, res) => {
       INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, planned_start_date, planned_due_date, status)
       VALUES ($1, $2, $3, $4, $5, 'RELEASED') RETURNING *;
     `;
-    await db.query(woQuery, [wo_id, product_id, plan_quantity, planned_start_date, planned_due_date]);
+    await db.query(woQuery, [wo_id, product_id, Number(plan_quantity), planned_start_date, planned_due_date]);
 
-    // Tự động trừ tồn kho và cấp phát vật tư theo BOM
-    await db.query('SELECT allocate_wo_materials($1, $2, $3)', [wo_id, product_id, plan_quantity]);
+    // Tự động trừ tồn kho và cấp phát vật tư theo BOM với kiểu dữ liệu tường minh
+    await db.query('SELECT allocate_wo_materials($1::text, $2::text, $3::numeric)', [
+      String(wo_id),
+      String(product_id),
+      Number(plan_quantity)
+    ]);
 
     // Lấy lưu trình Routing và sinh Job Tickets
     const routingQuery = `
@@ -84,12 +88,12 @@ app.post('/api/work-orders', async (req, res) => {
       await db.query(
         `INSERT INTO mes_job_tickets (ticket_id, wo_id, operation_id, step_order, target_qty, status)
          VALUES ($1, $2, $3, $4, $5, 'PENDING')`,
-        [ticketId, wo_id, step.operation_id, step.step_order, plan_quantity]
+        [ticketId, wo_id, step.operation_id, step.step_order, Number(plan_quantity)]
       );
     }
 
     await db.query('COMMIT');
-    res.json({ success: true, message: `Phát lệnh ${wo_id} thành công! Đã cấp phát NVL theo định mức BOM.` });
+    res.json({ success: true, message: `Phát lệnh ${wo_id} thành công! Đã cấp phát NVL theo định mức BOM và tạo ${steps.length} thẻ QR.` });
   } catch (err) {
     await db.query('ROLLBACK');
     res.status(500).json({ success: false, error: err.message });
@@ -175,13 +179,13 @@ app.post('/api/shopfloor/finish', async (req, res) => {
       `UPDATE mes_production_logs
        SET end_time = NOW(), produced_good_qty = $1, produced_scrap_qty = $2
        WHERE log_id = $3`,
-      [good_qty, scrap_qty, log_id]
+      [Number(good_qty), Number(scrap_qty), log_id]
     );
 
-    if (scrap_qty > 0 && defect_id) {
+    if (Number(scrap_qty) > 0 && defect_id) {
       await db.query(
         `INSERT INTO mes_defect_logs (log_id, defect_id, defect_qty) VALUES ($1, $2, $3)`,
-        [log_id, defect_id, scrap_qty]
+        [log_id, defect_id, Number(scrap_qty)]
       );
     }
 
@@ -196,7 +200,7 @@ app.post('/api/shopfloor/finish', async (req, res) => {
            scrap_qty = COALESCE(scrap_qty, 0) + $2,
            status = 'COMPLETED'
        WHERE ticket_id = $3`,
-      [good_qty, scrap_qty, ticket_id]
+      [Number(good_qty), Number(scrap_qty), ticket_id]
     );
 
     await db.query('COMMIT');
