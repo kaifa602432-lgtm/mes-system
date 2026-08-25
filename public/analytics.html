@@ -576,19 +576,41 @@
         const result = await res.json();
         const curLang = getSavedLanguage();
 
-        const rawData = (result.data && result.data.length > 0) ? result.data : [
-          { defect_name: 'Ba via dập vượt tiêu chuẩn', total_qty: 105 },
-          { defect_name: 'Bong tróc màng sơn', total_qty: 80 },
-          { defect_name: 'Rỗ khí mối hàn', total_qty: 50 },
-          { defect_name: 'Sai dung sai kích thước CNC', total_qty: 5 }
-        ];
-
-        const labels = rawData.map(d => t(d.defect_name));
-        const values = rawData.map(d => Number(d.total_qty));
-
         const ctx = document.getElementById('paretoChart').getContext('2d');
         if (paretoChartInstance) paretoChartInstance.destroy();
-        
+
+        // Nếu cơ sở dữ liệu không có lỗi nào (sau khi Reset)
+        if (!result.data || result.data.length === 0) {
+          paretoChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: [curLang === 'en' ? 'No Defects' : (curLang === 'zh' ? '無不良品' : 'Không có phế phẩm')],
+              datasets: [{
+                label: curLang === 'en' ? 'Scrap Qty (NG)' : (curLang === 'zh' ? '不良數量 (NG)' : 'Phế phẩm (NG)'),
+                data: [0],
+                backgroundColor: 'rgba(51, 65, 85, 0.4)',
+                borderColor: 'rgba(100, 116, 139, 0.5)',
+                borderWidth: 1,
+                borderRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, max: 10, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+                x: { grid: { display: false } }
+              }
+            }
+          });
+          return;
+        }
+
+        // Khi có phát sinh lỗi thực tế
+        const labels = result.data.map(d => t(d.defect_name));
+        const values = result.data.map(d => Number(d.total_qty));
+
         paretoChartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
@@ -609,10 +631,8 @@
               legend: { display: false },
               tooltip: {
                 callbacks: {
-                  title: function(items) {
-                    return items[0].label; // Đã dịch qua t()
-                  },
-                  label: function(context) {
+                  title: (items) => items[0].label,
+                  label: (context) => {
                     const labelName = curLang === 'en' ? 'Scrap (NG)' : (curLang === 'zh' ? '不良數量 (NG)' : 'Phế phẩm (NG)');
                     return `${labelName}: ${context.raw} PCS`;
                   }

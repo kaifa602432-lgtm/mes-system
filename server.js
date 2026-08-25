@@ -834,21 +834,33 @@ app.post('/api/simulator/scenario/mega-crisis', async (req, res) => {
 app.post('/api/simulator/reset-all', async (req, res) => {
   try {
     await db.query('BEGIN');
+    
+    // 1. Phục hồi trạng thái máy móc
     await db.query(`UPDATE md_machines SET current_status = 'IDLE'`);
+    
+    // 2. Phục hồi kho vật tư
     await db.query(`UPDATE md_materials SET current_stock = 25000 WHERE material_id = 'MAT-COIL-01'`);
     await db.query(`UPDATE md_materials SET current_stock = 2000 WHERE material_id = 'MAT-PIPE-02'`);
     await db.query(`UPDATE md_materials SET current_stock = 850 WHERE material_id = 'MAT-PAINT-BLK'`);
     await db.query(`UPDATE md_materials SET current_stock = 5000 WHERE material_id = 'MAT-BOLT-M8'`);
 
+    // 3. XÓA SẠCH DỮ LIỆU LỖI & NHẬT KÝ SỰ CỐ
+    await db.query(`DELETE FROM mes_defect_logs`);
     await db.query(`DELETE FROM mes_incident_logs`);
+    await db.query(`DELETE FROM mes_production_logs`);
+    await db.query(`DELETE FROM mes_aps_schedules`);
+    
+    // 4. Xóa các đơn mô phỏng bất thường
     await db.query(`DELETE FROM mes_work_orders WHERE wo_id LIKE 'WO-MASS%' OR wo_id LIKE 'CRISIS%' OR wo_id LIKE 'WO-RUSH%' OR wo_id LIKE 'WO-BOTTLENECK%'`);
     
+    // 5. Thiết lập 1 lệnh chuẩn duy nhất (300 PCS)
     await db.query(`
       INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, status)
       VALUES ('WO-2026-NORMAL', 'FG-FRAME-01', 300, 'RELEASED')
       ON CONFLICT (wo_id) DO UPDATE SET plan_quantity = 300, status = 'RELEASED'
     `);
 
+    // Phục hồi dòng WIP sạch sẽ
     await db.query(`DELETE FROM mes_wip_inventory WHERE wo_id != 'WO-2026-NORMAL'`);
     await db.query(`
       INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty, out_scrap_qty)
@@ -862,7 +874,7 @@ app.post('/api/simulator/reset-all', async (req, res) => {
     `);
 
     await db.query('COMMIT');
-    res.json({ success: true, message: 'Đã phục hồi xưởng về trạng thái CHUẨN: Máy móc sẵn sàng, nhân lực cân bằng, tải tối ưu (300 PCS)!' });
+    res.json({ success: true, message: 'Đã phục hồi xưởng về trạng thái CHUẨN: Xóa toàn bộ lỗi, máy sẵn sàng, nhân lực cân bằng!' });
   } catch (err) {
     await db.query('ROLLBACK');
     res.status(500).json({ success: false, error: err.message });
