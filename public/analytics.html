@@ -11,20 +11,23 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen p-6 space-y-6">
   <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Header -->
+    <!-- Header & Menu Điều Hướng -->
     <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
       <div>
         <h1 class="text-xl font-black text-cyan-400">📈 TRUNG TÂM PHÂN TÍCH NĂNG SUẤT, WIP & ĐIỀU ĐỘ APS</h1>
         <p class="text-xs text-slate-400">Kiểm soát dòng chảy bán thành phẩm, cân bằng chuyền và phân tích lỗi chất lượng</p>
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <button onclick="runAutoSimulation()" id="btnSimulate" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl transition shadow-lg animate-pulse">
+          🚀 Chạy Mô Phỏng Tự Động (1-Click)
+        </button>
         <a href="/" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">🏠 Phát Lệnh</a>
         <a href="/dashboard.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">📊 Dashboard OEE</a>
         <a href="/master-data.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">📦 Master Data</a>
       </div>
     </div>
 
-    <!-- 1. THEO DÕI DÒNG CHẢY TỒN BÁN THÀNH PHẨM (WIP FLOW TRACKING) -->
+    <!-- 1. THEO DÕI DÒNG CHẢY TỒN BÁN THÀNH PHẨM (WIP FLOW) -->
     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <div>
@@ -50,7 +53,7 @@
               <th class="p-3 text-center">Trạng Thái Dòng Chảy</th>
             </tr>
           </thead>
-          <tbody id="wipBody" class="divide-y divide-slate-800">
+          <tbody id="wipBody" class="divide-y divide-slate-800 font-mono">
             <tr><td colspan="8" class="p-4 text-center text-slate-500">Đang tải dòng chảy WIP...</td></tr>
           </tbody>
         </table>
@@ -60,7 +63,7 @@
     <!-- 2. LẬP LỊCH & ĐIỀU ĐỘ APS THEO CA LÀM VIỆC -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
-      <!-- Form điều độ APS -->
+      <!-- Cột trái: Form điều độ APS -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4 lg:col-span-1">
         <h2 class="text-base font-bold text-cyan-400 border-b border-slate-800 pb-2">⏱️ Điều Độ Lập Lịch APS</h2>
         <form id="apsForm" class="space-y-3 text-xs">
@@ -86,7 +89,7 @@
         </form>
       </div>
 
-      <!-- Lịch phân bổ chi tiết -->
+      <!-- Cột phải: Lịch phân bổ chi tiết -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4 lg:col-span-2">
         <h2 class="text-base font-bold text-white border-b border-slate-800 pb-2">📅 Kế Hoạch Phân Bổ Máy & Ca Làm Việc (APS Schedule)</h2>
         <div class="overflow-x-auto">
@@ -109,7 +112,7 @@
       </div>
     </div>
 
-    <!-- 3. BIỂU ĐỒ PARETO LỖI & NĂNG SUẤT CÔNG NHÂN -->
+    <!-- 3. BIỂU ĐỒ TRỰC QUAN PARETO LỖI & NĂNG SUẤT NHÂN SỰ -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       
       <!-- Biểu đồ Pareto Lỗi -->
@@ -149,6 +152,7 @@
     const API_BASE = '/api';
     let paretoChartInstance = null;
 
+    // 1. Tải dòng chảy tồn WIP
     async function loadWIPFlow() {
       try {
         const res = await fetch(`${API_BASE}/analytics/wip-flow`);
@@ -163,19 +167,19 @@
 
         result.data.forEach(w => {
           const wipBadge = w.wip_qty > 0 
-            ? `<span class="px-2 py-0.5 rounded text-[10px] bg-amber-950 border border-amber-700 text-amber-300 font-bold font-mono animate-pulse">${w.wip_qty} PCS ĐANG CHỜ</span>`
+            ? `<span class="px-2 py-0.5 rounded text-[10px] bg-amber-950 border border-amber-700 text-amber-300 font-bold font-mono">${w.wip_qty} PCS ĐANG CHỜ</span>`
             : `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400">TRỐNG</span>`;
 
           tbody.innerHTML += `
             <tr class="hover:bg-slate-900/50 transition">
               <td class="p-3 font-mono font-bold text-cyan-400">${w.wo_id}</td>
-              <td class="p-3 text-slate-300">${w.product_name}</td>
-              <td class="p-3 font-semibold text-slate-200">Bước ${w.step_order} - ${w.operation_name} <br><span class="text-[10px] text-slate-500 font-normal">Phân xưởng: ${w.department}</span></td>
+              <td class="p-3 text-slate-300 font-sans">${w.product_name}</td>
+              <td class="p-3 font-semibold text-slate-200 font-sans">Bước ${w.step_order} - ${w.operation_name} <br><span class="text-[10px] text-slate-500 font-normal">Phân xưởng: ${w.department}</span></td>
               <td class="p-3 text-center font-bold text-slate-300">${w.in_qty}</td>
               <td class="p-3 text-center font-bold">${wipBadge}</td>
               <td class="p-3 text-center font-bold text-emerald-400">${w.out_good_qty}</td>
               <td class="p-3 text-center font-bold text-rose-400">${w.out_scrap_qty}</td>
-              <td class="p-3 text-center">
+              <td class="p-3 text-center font-sans">
                 <span class="text-[10px] text-slate-400">${w.out_good_qty > 0 ? 'Đã luân chuyển' : 'Chưa gia công'}</span>
               </td>
             </tr>
@@ -186,6 +190,7 @@
       }
     }
 
+    // 2. Nạp danh sách Lệnh vào Form APS
     async function loadWOForAPS() {
       try {
         const res = await fetch(`${API_BASE}/work-orders`);
@@ -202,6 +207,7 @@
       }
     }
 
+    // 3. Tải Lịch điều độ APS
     async function loadAPSSchedules() {
       try {
         const res = await fetch(`${API_BASE}/aps/schedules`);
@@ -233,6 +239,7 @@
       }
     }
 
+    // 4. Bắt sự kiện Lập lịch APS
     document.getElementById('apsForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const body = {
@@ -255,6 +262,7 @@
       }
     });
 
+    // 5. Tải Biểu đồ Pareto Lỗi QC
     async function loadPareto() {
       try {
         const res = await fetch(`${API_BASE}/analytics/defect-pareto`);
@@ -294,6 +302,7 @@
       }
     }
 
+    // 6. Tải Năng suất Công nhân
     async function loadOperators() {
       try {
         const res = await fetch(`${API_BASE}/analytics/operator-performance`);
@@ -322,6 +331,34 @@
       }
     }
 
+    // 7. Hàm Chạy Mô Phỏng Tự Động 1-Click
+    async function runAutoSimulation() {
+      const btn = document.getElementById('btnSimulate');
+      btn.disabled = true;
+      btn.innerText = '⏳ Đang giả lập luân chuyển sản xuất...';
+
+      try {
+        const res = await fetch(`${API_BASE}/simulator/run-auto`, { method: 'POST' });
+        const result = await res.json();
+        if (result.success) {
+          alert(`🎉 ${result.message}`);
+          loadWIPFlow();
+          loadWOForAPS();
+          loadAPSSchedules();
+          loadPareto();
+          loadOperators();
+        } else {
+          alert('Lỗi mô phỏng: ' + result.error);
+        }
+      } catch (err) {
+        alert('Không thể kết nối máy chủ!');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🚀 Chạy Mô Phỏng Tự Động (1-Click)';
+      }
+    }
+
+    // Khởi chạy khi tải trang
     loadWIPFlow();
     loadWOForAPS();
     loadAPSSchedules();

@@ -460,6 +460,79 @@ app.get('/api/dashboard/logs', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+// ==========================================
+// 5. API MÔ PHỎNG SẢN XUẤT TỰ ĐỘNG (1-CLICK SIMULATOR)
+// ==========================================
+app.post('/api/simulator/run-auto', async (req, res) => {
+  const simWoId = `SIM-WO-${Date.now().toString().slice(-4)}`;
+  const planQty = 300;
 
+  try {
+    await db.query('BEGIN');
+
+    // 1. Tạo Lệnh mô phỏng
+    await db.query(
+      `INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, planned_start_date, planned_due_date, status)
+       VALUES ($1, 'FG-FRAME-01', $2, NOW(), NOW() + INTERVAL '5 days', 'RELEASED')`,
+      [simWoId, planQty]
+    );
+
+    // 2. Cấp phát trừ tồn kho NVL theo BOM
+    await db.query('SELECT allocate_wo_materials($1::text, $2::text, $3::numeric)', [
+      simWoId, 'FG-FRAME-01', planQty
+    ]);
+
+    // 3. Khởi tạo Tickets và bảng luân chuyển WIP
+    const stepsData = [
+      { step: 10, op: 'OP_STAMP_01', mc: 'MC-PRESS-01', opCode: 'NV-088', good: 295, scrap: 5, defect: 'DEF_STAMP_BURR' },
+      { step: 20, op: 'OP_CNC_MILL_01', mc: 'MC-CNC-01', opCode: 'NV-102', good: 290, scrap: 5, defect: 'DEF_CNC_DIM' },
+      { step: 30, op: 'OP_WELD_01', mc: 'MC-WELD-01', opCode: 'NV-045', good: 288, scrap: 2, defect: 'DEF_WELD_POROSITY' },
+      { step: 40, op: 'OP_PAINT_01', mc: 'MC-PAINT-01', opCode: 'NV-019', good: 285, scrap: 3, defect: 'DEF_PAINT_PEEL' },
+      { step: 50, op: 'OP_ASSY_01', mc: 'MC-ASSY-01', opCode: 'NV-077', good: 285, scrap: 0, defect: null }
+    ];
+
+    for (let i = 0; i < stepsData.length; i++) {
+      const s = stepsData[i];
+      const ticketId = `${simWoId}-STEP${s.step}`;
+      const inWip = i === 0 ? planQty : 0;
+
+      await db.query(
+        `INSERT INTO mes_job_tickets (ticket_id, wo_id, operation_id, step_order, target_qty, good_qty, scrap_qty, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'COMPLETED')`,
+        [ticketId, simWoId, s.op, s.step, planQty, s.good, s.scrap]
+      );
+
+      await db.query(
+        `INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty, out_scrap_qty)
+         VALUES ($1, $2, $3, $4, 0, $5, $6)`,
+        [simWoId, s.op, s.step, inWip, s.good, s.scrap]
+      );
+
+      // Tạo log vận hành máy và ghi nhận lỗi
+      const { rows: logRows } = await db.query(
+        `INSERT INTO mes_production_logs (ticket_id, machine_id, operator_code, start_time, end_time, produced_good_qty, produced_scrap_qty)
+         VALUES ($1, $2, $3, NOW() - INTERVAL '2 hours', NOW(), $4, $5) RETURNING log_id`,
+        [ticketId, s.mc, s.opCode, s.good, s.scrap]
+      );
+
+      if (s.scrap > 0 && s.defect) {
+        await db.query(
+          `INSERT INTO mes_defect_logs (log_id, defect_id, defect_qty) VALUES ($1, $2, $3)`,
+          [logRows[0].log_id, s.defect, s.scrap]
+        );
+      }
+    }
+
+    await db.query('COMMIT');
+    res.json({
+      success: true,
+      simWoId: simWoId,
+      message: `Đã chạy xong mô phỏng cho lệnh ${simWoId} với 5 công đoạn liên hoàn!`
+    });
+  } catch (err) {
+    await db.query('ROLLBACK');
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`MES Server running on port ${PORT}`));
