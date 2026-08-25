@@ -3,24 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MES - Phân Tích Dòng Chảy WIP, Lập Lịch APS, Năng Lực Máy & Cân Bằng Nhân Lực</title>
+  <title>MES - Phân Tích Dòng Chảy WIP, Lập Lịch APS & Cân Bằng Nhân Lực</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/i18n.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-6 space-y-6">
   <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Header & Menu Điều Hướng -->
+    <!-- Header & Menu Điều Hướng & Đổi Ngôn Ngữ -->
     <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
       <div>
-        <h1 class="text-xl font-black text-cyan-400">📈 TRUNG TÂM PHÂN TÍCH NĂNG SUẤT, WIP, ĐIỀU ĐỘ APS & ĐỊNH BIÊN NHÂN LỰC</h1>
-        <p class="text-xs text-slate-400">Tính toán % tải thực tế theo OEE máy móc, năng suất công nhân, cảnh báo quá tải và định biên nhân sự theo ca</p>
+        <h1 data-i18n="an_title" class="text-xl font-black text-cyan-400">📈 TRUNG TÂM PHÂN TÍCH NĂNG SUẤT, WIP, ĐIỀU ĐỘ APS & ĐỊNH BIÊN NHÂN LỰC</h1>
+        <p data-i18n="an_subtitle" class="text-xs text-slate-400">Tính toán % tải thực tế theo OEE máy móc, năng suất công nhân, cảnh báo quá tải và định biên nhân sự theo ca</p>
       </div>
+      
       <div class="flex flex-wrap items-center gap-2">
-        <a href="/" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">🏠 Phát Lệnh</a>
-        <a href="/dashboard.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">📊 Dashboard OEE</a>
-        <a href="/master-data.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">📦 Master Data</a>
+        <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-xl mr-2">
+          <span class="text-xs">🌐</span>
+          <select id="langSelect" onchange="setLanguage(this.value)" class="bg-transparent text-xs text-white font-bold outline-none cursor-pointer">
+            <option value="vi" class="bg-slate-900 text-white">🇻🇳 Tiếng Việt</option>
+            <option value="en" class="bg-slate-900 text-white">🇬🇧 English</option>
+            <option value="zh" class="bg-slate-900 text-white">🇹🇼 繁體中文</option>
+          </select>
+        </div>
+
+        <a href="/" data-i18n="nav_create_wo" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">🏠 Phát Lệnh</a>
+        <a href="/dashboard.html" data-i18n="nav_oee" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">📊 Dashboard OEE</a>
+        <a href="/master-data.html" data-i18n="nav_master" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">📦 Master Data</a>
       </div>
     </div>
 
@@ -28,12 +38,12 @@
     <div class="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 border border-indigo-500/30 p-6 rounded-2xl shadow-2xl space-y-4">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
         <div>
-          <h2 class="text-base font-black text-amber-400 flex items-center gap-2">
+          <h2 data-i18n="sim_header" class="text-base font-black text-amber-400 flex items-center gap-2">
             <span>🚨 TRUNG TÂM KÍCH HOẠT GIẢ LẬP SỰ CỐ & ĐẨY TẢI TOÀN BỘ NHÀ MÁY</span>
           </h2>
-          <p class="text-xs text-slate-400">Kích hoạt sự cố cục bộ hoặc đẩy tải hàng loạt 11,300 PCS để đo lường năng lực máy móc và nhân sự</p>
+          <p data-i18n="sim_desc" class="text-xs text-slate-400">Kích hoạt sự cố cục bộ hoặc đẩy tải hàng loạt 11,300 PCS để đo lường năng lực máy móc và nhân sự</p>
         </div>
-        <button onclick="triggerScenario('reset-all')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold transition">
+        <button onclick="triggerScenario('reset-all')" data-i18n="btn_reset" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold transition">
           🔄 Phục Hồi Xưởng (Reset)
         </button>
       </div>
@@ -43,48 +53,48 @@
         <button onclick="triggerScenario('lack-machine')" class="p-3 bg-slate-900 hover:bg-slate-800 border border-amber-500/40 hover:border-amber-400 rounded-xl text-left transition flex flex-col justify-between">
           <span class="text-lg">⚙️</span>
           <div class="mt-2">
-            <b class="text-xs text-amber-300 block">1. Thiếu Máy / Nghẽn CNC</b>
-            <span class="text-[10px] text-slate-400">Ứ đọng 800 phôi</span>
+            <b data-i18n="sc1" class="text-xs text-amber-300 block">1. Nghẽn Phôi CNC</b>
+            <span data-i18n="sc1_sub" class="text-[10px] text-slate-400">Ứ đọng 800 phôi</span>
           </div>
         </button>
 
         <button onclick="triggerScenario('machine-breakdown')" class="p-3 bg-slate-900 hover:bg-slate-800 border border-rose-500/40 hover:border-rose-400 rounded-xl text-left transition flex flex-col justify-between">
           <span class="text-lg">💥</span>
           <div class="mt-2">
-            <b class="text-xs text-rose-300 block">2. Đang Chạy Máy Hư</b>
-            <span class="text-[10px] text-slate-400">Máy Dập AIDA hỏng</span>
+            <b data-i18n="sc2" class="text-xs text-rose-300 block">2. Đang Chạy Máy Hư</b>
+            <span data-i18n="sc2_sub" class="text-[10px] text-slate-400">Máy Dập AIDA hỏng</span>
           </div>
         </button>
 
         <button onclick="triggerScenario('material-shortage')" class="p-3 bg-slate-900 hover:bg-slate-800 border border-orange-500/40 hover:border-orange-400 rounded-xl text-left transition flex flex-col justify-between">
           <span class="text-lg">📦</span>
           <div class="mt-2">
-            <b class="text-xs text-orange-300 block">3. Thiếu Nguyên Liệu</b>
-            <span class="text-[10px] text-slate-400">Tôn cán nóng cạn kiệt</span>
+            <b data-i18n="sc3" class="text-xs text-orange-300 block">3. Thiếu Tôn Cuộn</b>
+            <span data-i18n="sc3_sub" class="text-[10px] text-slate-400">Kho còn dưới 45kg</span>
           </div>
         </button>
 
         <button onclick="triggerScenario('labor-absent')" class="p-3 bg-slate-900 hover:bg-slate-800 border border-blue-500/40 hover:border-blue-400 rounded-xl text-left transition flex flex-col justify-between">
           <span class="text-lg">👷</span>
           <div class="mt-2">
-            <b class="text-xs text-blue-300 block">4. Thợ Hàn Nghỉ Đột Xuất</b>
-            <span class="text-[10px] text-slate-400">Giảm 60% nhịp độ chuyền</span>
+            <b data-i18n="sc4" class="text-xs text-blue-300 block">4. Thợ Hàn Nghỉ Đột Xuất</b>
+            <span data-i18n="sc4_sub" class="text-[10px] text-slate-400">Giảm 60% nhịp độ</span>
           </div>
         </button>
 
         <button onclick="triggerScenario('rush-order')" class="p-3 bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 hover:border-cyan-400 rounded-xl text-left transition flex flex-col justify-between">
           <span class="text-lg">⚡</span>
           <div class="mt-2">
-            <b class="text-xs text-cyan-300 block">5. Đột Biến Đơn Gấp</b>
-            <span class="text-[10px] text-slate-400">+1,500 PCS trong 48h</span>
+            <b data-i18n="sc5" class="text-xs text-cyan-300 block">5. Đột Biến Đơn Gấp</b>
+            <span data-i18n="sc5_sub" class="text-[10px] text-slate-400">+1,500 PCS trong 48h</span>
           </div>
         </button>
 
         <button onclick="triggerScenario('mass-defect')" class="p-3 bg-slate-900 hover:bg-slate-800 border border-purple-500/40 hover:border-purple-400 rounded-xl text-left transition flex flex-col justify-between">
           <span class="text-lg">❌</span>
           <div class="mt-2">
-            <b class="text-xs text-purple-300 block">6. Lỗi Chất Lượng Hàng Loạt</b>
-            <span class="text-[10px] text-slate-400">80 phôi bong tróc sơn</span>
+            <b data-i18n="sc6" class="text-xs text-purple-300 block">6. Lỗi Chất Lượng Sơn</b>
+            <span data-i18n="sc6_sub" class="text-[10px] text-slate-400">80 phôi bong tróc</span>
           </div>
         </button>
       </div>
@@ -93,28 +103,28 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
         <button onclick="floodMultipleOrders()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition">
           <span class="text-lg">🌊</span>
-          <span class="text-xs uppercase tracking-wider">ĐẨY TẢI CỰC ĐẠI: NẠP 4 ĐƠN HÀNG HÀNG LOẠT (11,300 PCS)</span>
+          <span data-i18n="btn_flood" class="text-xs uppercase tracking-wider">ĐẨY TẢI CỰC ĐẠI: NẠP 4 ĐƠN HÀNG HÀNG LOẠT (11,300 PCS)</span>
         </button>
 
         <button onclick="triggerScenario('mega-crisis')" class="bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition">
           <span class="text-lg">🔥</span>
-          <span class="text-xs uppercase tracking-wider">SIÊU KHỦNG HOẢNG: 2,000 PCS + HỎNG MÁY + NGHẼN CNC</span>
+          <span data-i18n="btn_crisis" class="text-xs uppercase tracking-wider">SIÊU KHỦNG HOẢNG: 2,000 PCS + HỎNG MÁY + NGHẼN CNC</span>
         </button>
       </div>
     </div>
 
-    <!-- 1. BẢNG PHÂN TÍCH ĐỊNH BIÊN NHÂN LỰC THỪA / THIẾU THEO TẢI ĐƠN HÀNG -->
+    <!-- 1. BẢNG PHÂN TÍCH ĐỊNH BIÊN NHÂN LỰC THỪA / THIẾU -->
     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
         <div>
-          <h2 class="text-base font-bold text-cyan-300 flex items-center gap-2">
+          <h2 data-i18n="mp_header" class="text-base font-bold text-cyan-300 flex items-center gap-2">
             <span>👥 Phân Tích Cân Bằng Nhân Lực (Manpower Capacity & Headcount Planning)</span>
           </h2>
-          <p class="text-[11px] text-slate-400">Tính toán số công nhân cần thiết theo tổng tải đơn hàng, xác định thừa/thiếu nhân sự cho từng xưởng theo ca (7.25h)</p>
+          <p data-i18n="mp_desc" class="text-[11px] text-slate-400">Tính toán số công nhân cần thiết theo tổng tải đơn hàng, xác định thừa/thiếu nhân sự cho từng xưởng theo ca (7.25h)</p>
         </div>
         <div class="flex items-center gap-2">
           <span id="totalDemandBadge" class="text-xs bg-slate-800 text-cyan-400 font-mono px-3 py-1 rounded-lg border border-slate-700">Tổng nhu cầu: 0 PCS</span>
-          <button onclick="loadManpowerAnalysis()" class="text-xs bg-cyan-950 text-cyan-400 border border-cyan-800 px-3 py-1.5 rounded-lg hover:bg-cyan-900">🔄 Tính toán lại nhân lực</button>
+          <button onclick="loadManpowerAnalysis()" class="text-xs bg-cyan-950 text-cyan-400 border border-cyan-800 px-3 py-1.5 rounded-lg hover:bg-cyan-900">🔄</button>
         </div>
       </div>
 
@@ -122,13 +132,13 @@
         <table class="w-full text-left text-xs border-collapse font-sans">
           <thead>
             <tr class="bg-slate-950 text-slate-400 border-b border-slate-800">
-              <th class="p-3">Phân Xưởng</th>
-              <th class="p-3 text-center">Công Nhân Hiện Có</th>
-              <th class="p-3 text-center">Tổng Phút Cần / Đơn</th>
-              <th class="p-3 text-center text-cyan-300">Công Nhân Cần (1 Ca)</th>
-              <th class="p-3 text-center">% Tải Nhân Lực</th>
-              <th class="p-3 text-center">Thừa / Thiếu</th>
-              <th class="p-3">Khuyến Nghị Định Biên Nhân Sự</th>
+              <th data-i18n="th_dept" class="p-3">Phân Xưởng</th>
+              <th data-i18n="th_curr_worker" class="p-3 text-center">Công Nhân Hiện Có</th>
+              <th data-i18n="th_min_need" class="p-3 text-center">Tổng Phút Cần / Đơn</th>
+              <th data-i18n="th_worker_need" class="p-3 text-center text-cyan-300">Công Nhân Cần (1 Ca)</th>
+              <th data-i18n="th_load_per" class="p-3 text-center">% Tải Nhân Lực</th>
+              <th data-i18n="th_status" class="p-3 text-center">Thừa / Thiếu</th>
+              <th data-i18n="th_recommend" class="p-3">Khuyến Nghị Định Biên Nhân Sự</th>
             </tr>
           </thead>
           <tbody id="manpowerBody" class="divide-y divide-slate-800 font-mono">
@@ -138,54 +148,51 @@
       </div>
     </div>
 
-    <!-- 2. PHÂN TÍCH ĐIỀU ĐỘ APS THỰC TẾ: TÍNH TẢI, HIỆU SUẤT MÁY & CÔNG NHÂN -->
+    <!-- 2. PHÂN TÍCH ĐIỀU ĐỘ APS THỰC TẾ -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
       <!-- Cột trái: Form điều độ APS -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4 lg:col-span-1">
-        <h2 class="text-base font-bold text-cyan-400 border-b border-slate-800 pb-2">⏱️ Điều Độ & Cân Bằng Tải APS</h2>
+        <h2 data-i18n="aps_header" class="text-base font-bold text-cyan-400 border-b border-slate-800 pb-2">⏱️ Điều Độ & Cân Bằng Tải APS</h2>
         <form id="apsForm" class="space-y-3 text-xs">
           <div>
-            <label class="block text-slate-400 mb-1">Chọn Lệnh Sản Xuất Cần Lập Lịch</label>
+            <label data-i18n="lbl_select_wo" class="block text-slate-400 mb-1">Chọn Lệnh Sản Xuất Cần Lập Lịch</label>
             <select id="aps_wo_id" onchange="loadCapacityAnalysis()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none font-semibold text-cyan-300"></select>
           </div>
           <div>
-            <label class="block text-slate-400 mb-1">Ngày Bắt Đầu Chạy</label>
+            <label data-i18n="lbl_start_date_aps" class="block text-slate-400 mb-1">Ngày Bắt Đầu Chạy</label>
             <input type="date" id="aps_date" value="2026-08-26" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none">
           </div>
           <div>
-            <label class="block text-slate-400 mb-1">Ca Sản Xuất Dự Kiến</label>
+            <label data-i18n="lbl_shift_aps" class="block text-slate-400 mb-1">Ca Sản Xuất Dự Kiến</label>
             <select id="aps_shift" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none">
               <option value="SHIFT_1">Ca Sáng (06:00 - 14:00) - 7.25h</option>
               <option value="SHIFT_2">Ca Chiều (14:00 - 22:00) - 7.25h</option>
               <option value="SHIFT_3">Ca Đêm (22:00 - 06:00) - 7.25h</option>
             </select>
           </div>
-          <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-3 rounded-xl transition text-sm">
+          <button type="submit" data-i18n="btn_calc_aps" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-3 rounded-xl transition text-sm">
             ⚡ Tính Toán Tải & Cân Bằng APS
           </button>
         </form>
       </div>
 
-      <!-- Cột phải: Ma trận Phân bổ tải chi tiết theo Máy móc & Công nhân -->
+      <!-- Cột phải: Ma trận Phân bổ tải chi tiết -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4 lg:col-span-2">
         <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-          <div>
-            <h2 class="text-base font-bold text-white">📊 Ma Trận Phân Bổ Tải Chi Tiết (Load Balancing Matrix)</h2>
-            <p class="text-[11px] text-slate-400">Thời gian yêu cầu tính theo $Cycle\,Time / (OEE_{máy} \times Hiệu\,suất_{NV})$</p>
-          </div>
+          <h2 data-i18n="matrix_header" class="text-base font-bold text-white">📊 Ma Trận Phân Bổ Tải Chi Tiết (Load Balancing Matrix)</h2>
           <span id="loadSummaryBadge" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-mono">Đang chờ tính toán</span>
         </div>
         <div class="overflow-x-auto max-h-72">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
               <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
-                <th class="p-2.5">Công Đoạn</th>
-                <th class="p-2.5">Máy & OEE</th>
-                <th class="p-2.5">Công Nhân & Hiệu Suất</th>
-                <th class="p-2.5 text-center">Thời Gian Cần / Ca</th>
-                <th class="p-2.5 text-center">% Tải Công Suất</th>
-                <th class="p-2.5 text-center">Đánh Giá Tải</th>
+                <th data-i18n="th_op" class="p-2.5">Công Đoạn</th>
+                <th data-i18n="th_machine" class="p-2.5">Máy & OEE</th>
+                <th data-i18n="th_operator" class="p-2.5">Công Nhân & Hiệu Suất</th>
+                <th data-i18n="th_req_time" class="p-2.5 text-center">Thời Gian Cần / Ca</th>
+                <th data-i18n="th_load_pct" class="p-2.5 text-center">% Tải Công Suất</th>
+                <th data-i18n="th_eval" class="p-2.5 text-center">Đánh Giá Tải</th>
               </tr>
             </thead>
             <tbody id="apsDetailedBody" class="divide-y divide-slate-800 font-mono">
@@ -196,29 +203,26 @@
       </div>
     </div>
 
-    <!-- 3. PHÂN TÍCH NĂNG LỰC SẢN XUẤT & ĐỀ XUẤT ĐẦU TƯ THIẾT BỊ (CAPEX & BOTTLENECK ANALYSIS) -->
+    <!-- 3. PHÂN TÍCH NĂNG LỰC SẢN XUẤT & ĐẦU TƯ THIẾT BỊ (CAPEX) -->
     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <div>
-          <h2 class="text-base font-bold text-amber-300 flex items-center gap-2">
-            <span>🏭 Phân Tích Năng Lực Phân Xưởng & Đề Xuất Đầu Tư Thiết Bị (CapEx Recommendation)</span>
-          </h2>
-          <p class="text-[11px] text-slate-400">Xác định điểm nghẽn dây chuyền và khuyến nghị số máy cần bổ sung hoặc số ca cần tăng</p>
-        </div>
-        <button onclick="loadCapacityAnalysis()" class="text-xs bg-amber-950 text-amber-300 border border-amber-800 px-3 py-1.5 rounded-lg hover:bg-amber-900">🔄 Phân tích lại năng lực</button>
+        <h2 data-i18n="capex_header" class="text-base font-bold text-amber-300 flex items-center gap-2">
+          <span>🏭 Phân Tích Năng Lực Phân Xưởng & Đề Xuất Đầu Tư Thiết Bị (CapEx Recommendation)</span>
+        </h2>
+        <button onclick="loadCapacityAnalysis()" class="text-xs bg-amber-950 text-amber-300 border border-amber-800 px-3 py-1.5 rounded-lg hover:bg-amber-900">🔄</button>
       </div>
 
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse font-sans">
           <thead>
             <tr class="bg-slate-950 text-slate-400 border-b border-slate-800">
-              <th class="p-3">Phân Xưởng</th>
-              <th class="p-3 text-center">Số Máy Hiện Có</th>
-              <th class="p-3 text-center">Chu Kỳ Chuẩn (s)</th>
-              <th class="p-3 text-center">Năng Lực Tối Đa (SP/Ca)</th>
-              <th class="p-3 text-center text-cyan-300">Nhu Cầu Đơn Hàng</th>
-              <th class="p-3 text-center">% Tải Phân Xưởng</th>
-              <th class="p-3">Đề Xuất Hành Động / Đầu Tư Máy Móc</th>
+              <th data-i18n="th_capex_dept" class="p-3">Phân Xưởng</th>
+              <th data-i18n="th_capex_mach" class="p-3 text-center">Số Máy Hiện Có</th>
+              <th data-i18n="th_capex_cycle" class="p-3 text-center">Chu Kỳ Chuẩn (s)</th>
+              <th data-i18n="th_capex_cap" class="p-3 text-center">Năng Lực Tối Đa (SP/Ca)</th>
+              <th data-i18n="th_capex_demand" class="p-3 text-center text-cyan-300">Nhu Cầu Đơn Hàng</th>
+              <th data-i18n="th_capex_load" class="p-3 text-center">% Tải Phân Xưởng</th>
+              <th data-i18n="th_capex_sug" class="p-3">Đề Xuất Hành Động / Đầu Tư Máy Móc</th>
             </tr>
           </thead>
           <tbody id="capacityBody" class="divide-y divide-slate-800 font-mono">
@@ -233,15 +237,15 @@
       
       <!-- Nhật ký sự cố ANDON -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-        <h2 class="text-base font-bold text-white border-b border-slate-800 pb-2">⚠️ Nhật Ký Sự Cố & Hành Động Ứng Phó (Andon Logs)</h2>
+        <h2 data-i18n="andon_header" class="text-base font-bold text-white border-b border-slate-800 pb-2">⚠️ Nhật Ký Sự Cố & Hành Động Ứng Phó (Andon Logs)</h2>
         <div class="overflow-x-auto max-h-64">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
               <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
-                <th class="p-2.5">Thời Điểm</th>
-                <th class="p-2.5">Mã Lỗi</th>
-                <th class="p-2.5">Tên Sự Cố</th>
-                <th class="p-2.5 text-center">Mức Độ</th>
+                <th data-i18n="th_time" class="p-2.5">Thời Điểm</th>
+                <th data-i18n="th_err_code" class="p-2.5">Mã Lỗi</th>
+                <th data-i18n="th_err_name" class="p-2.5">Tên Sự Cố</th>
+                <th data-i18n="th_severity" class="p-2.5 text-center">Mức Độ</th>
               </tr>
             </thead>
             <tbody id="incidentBody" class="divide-y divide-slate-800 font-sans">
@@ -253,7 +257,7 @@
 
       <!-- Biểu đồ Pareto Lỗi -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-        <h2 class="text-base font-bold text-white border-b border-slate-800 pb-2">📊 Biểu Đồ Pareto Lỗi Chất Lượng QC (Defect Pareto)</h2>
+        <h2 data-i18n="pareto_header" class="text-base font-bold text-white border-b border-slate-800 pb-2">📊 Biểu Đồ Pareto Lỗi Chất Lượng QC (Defect Pareto)</h2>
         <div class="h-56">
           <canvas id="paretoChart"></canvas>
         </div>
@@ -263,19 +267,19 @@
 
     <!-- 5. MA TRẬN DÒNG CHẢY BÁN THÀNH PHẨM (WIP FLOW MATRIX) -->
     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-      <h2 class="text-base font-bold text-white border-b border-slate-800 pb-2">🔄 Dòng Chảy Bán Thành Phẩm Giữa Các Công Đoạn (WIP Tracking)</h2>
+      <h2 data-i18n="wip_header" class="text-base font-bold text-white border-b border-slate-800 pb-2">🔄 Dòng Chảy Bán Thành Phẩm Giữa Các Công Đoạn (WIP Tracking)</h2>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse font-sans">
           <thead>
             <tr class="bg-slate-950 text-slate-400 border-b border-slate-800">
-              <th class="p-3">Mã WO</th>
-              <th class="p-3">Sản Phẩm</th>
-              <th class="p-3">Công Đoạn</th>
-              <th class="p-3 text-center">Đầu Vào (In)</th>
-              <th class="p-3 text-center">Tồn Chờ Gia Công (WIP)</th>
-              <th class="p-3 text-center text-emerald-400">Hoàn Thành (OK)</th>
-              <th class="p-3 text-center text-rose-400">Phế Phẩm (NG)</th>
-              <th class="p-3 text-center">Trạng Thái</th>
+              <th data-i18n="th_wip_wo" class="p-3">Mã WO</th>
+              <th data-i18n="th_wip_prod" class="p-3">Sản Phẩm</th>
+              <th data-i18n="th_wip_op" class="p-3">Công Đoạn</th>
+              <th data-i18n="th_wip_in" class="p-3 text-center">Đầu Vào (In)</th>
+              <th data-i18n="th_wip_queue" class="p-3 text-center">Tồn Chờ Gia Công (WIP)</th>
+              <th data-i18n="th_wip_ok" class="p-3 text-center text-emerald-400">Hoàn Thành (OK)</th>
+              <th data-i18n="th_wip_ng" class="p-3 text-center text-rose-400">Phế Phẩm (NG)</th>
+              <th data-i18n="th_wip_status" class="p-3 text-center">Trạng Thái</th>
             </tr>
           </thead>
           <tbody id="wipBody" class="divide-y divide-slate-800 font-mono">
@@ -304,7 +308,7 @@
           alert('Lỗi: ' + result.error);
         }
       } catch (err) {
-        alert('Không thể kết nối đến máy chủ!');
+        alert('Không thể kết nối máy chủ!');
       }
     }
 
@@ -333,31 +337,37 @@
         tbody.innerHTML = '';
 
         if (result.total_demand) {
-          document.getElementById('totalDemandBadge').innerText = `Tổng nhu cầu: ${result.total_demand.toLocaleString()} PCS`;
+          const curLang = getSavedLanguage();
+          const lbl = curLang === 'en' ? 'Total Demand: ' : (curLang === 'zh' ? '總需求: ' : 'Tổng nhu cầu: ');
+          document.getElementById('totalDemandBadge').innerText = `${lbl}${result.total_demand.toLocaleString()} PCS`;
         }
 
         if (result.data) {
+          const curLang = getSavedLanguage();
           result.data.forEach(m => {
             let statusBadge = '';
             let loadTextColor = '';
 
             if (m.load_percent > 100) {
-              statusBadge = `<span class="px-2.5 py-1 rounded text-[10px] bg-rose-950 border border-rose-700 text-rose-300 font-bold animate-pulse">🔥 THIẾU ${m.worker_gap} NGƯỜI</span>`;
+              const textDef = curLang === 'en' ? `DEFICIT ${m.worker_gap} WORKERS` : (curLang === 'zh' ? `缺工 ${m.worker_gap} 人` : `🔥 THIẾU ${m.worker_gap} NGƯỜI`);
+              statusBadge = `<span class="px-2.5 py-1 rounded text-[10px] bg-rose-950 border border-rose-700 text-rose-300 font-bold animate-pulse">${textDef}</span>`;
               loadTextColor = 'text-rose-400 font-black';
             } else if (m.load_percent >= 50 && m.load_percent <= 100) {
-              statusBadge = `<span class="px-2.5 py-1 rounded text-[10px] bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">✅ CÂN BẰNG TỐI ƯU</span>`;
+              const textBal = curLang === 'en' ? 'BALANCED' : (curLang === 'zh' ? '平衡最佳' : '✅ CÂN BẰNG TỐI ƯU');
+              statusBadge = `<span class="px-2.5 py-1 rounded text-[10px] bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">${textBal}</span>`;
               loadTextColor = 'text-emerald-400 font-bold';
             } else {
-              statusBadge = `<span class="px-2.5 py-1 rounded text-[10px] bg-blue-950 border border-blue-700 text-blue-300 font-bold">ℹ️ DƯ ${Math.abs(m.worker_gap)} NGƯỜI</span>`;
+              const textSur = curLang === 'en' ? `SURPLUS ${Math.abs(m.worker_gap)} WORKERS` : (curLang === 'zh' ? `盈餘 ${Math.abs(m.worker_gap)} 人` : `ℹ️ DƯ ${Math.abs(m.worker_gap)} NGƯỜI`);
+              statusBadge = `<span class="px-2.5 py-1 rounded text-[10px] bg-blue-950 border border-blue-700 text-blue-300 font-bold">${textSur}</span>`;
               loadTextColor = 'text-blue-400 font-medium';
             }
 
             tbody.innerHTML += `
               <tr class="hover:bg-slate-900/50">
                 <td class="p-3 font-bold text-white font-sans">${m.department}</td>
-                <td class="p-3 text-center font-bold text-slate-300">${m.current_workers} công nhân</td>
-                <td class="p-3 text-center">${m.minutes_needed.toLocaleString()} phút</td>
-                <td class="p-3 text-center font-bold text-cyan-300">${m.workers_required} người</td>
+                <td class="p-3 text-center font-bold text-slate-300">${m.current_workers}</td>
+                <td class="p-3 text-center">${m.minutes_needed.toLocaleString()}m</td>
+                <td class="p-3 text-center font-bold text-cyan-300">${m.workers_required}</td>
                 <td class="p-3 text-center ${loadTextColor}">${m.load_percent}%</td>
                 <td class="p-3 text-center font-sans">${statusBadge}</td>
                 <td class="p-3 font-sans ${m.worker_gap > 0 ? 'text-amber-300 font-bold' : 'text-slate-400'}">${m.recommendation}</td>
@@ -402,12 +412,15 @@
       tbody.innerHTML = '';
       if (!data || data.length === 0) return;
 
+      const curLang = getSavedLanguage();
       data.forEach(item => {
         const isOverload = item.load_percent > 100;
         const loadColor = isOverload ? 'text-rose-400 font-black animate-pulse' : 'text-emerald-400 font-bold';
+        const txtOv = curLang === 'en' ? `OVERLOAD (${item.load_percent}%)` : (curLang === 'zh' ? `過載 (${item.load_percent}%)` : `🔥 QUÁ TẢI (${item.load_percent}%)`);
+        const txtOpt = curLang === 'en' ? `OPTIMIZED (${item.load_percent}%)` : (curLang === 'zh' ? `最佳 (${item.load_percent}%)` : `TỐI ƯU (${item.load_percent}%)`);
         const badge = isOverload
-          ? `<span class="px-2 py-0.5 rounded text-[10px] bg-rose-950 border border-rose-700 text-rose-300 font-bold animate-pulse">🔥 QUÁ TẢI (${item.load_percent}%)</span>`
-          : `<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 border border-emerald-700 text-emerald-300">TỐI ƯU (${item.load_percent}%)</span>`;
+          ? `<span class="px-2 py-0.5 rounded text-[10px] bg-rose-950 border border-rose-700 text-rose-300 font-bold animate-pulse">${txtOv}</span>`
+          : `<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 border border-emerald-700 text-emerald-300">${txtOpt}</span>`;
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-900/50">
@@ -441,10 +454,10 @@
           tbody.innerHTML += `
             <tr class="hover:bg-slate-900/50">
               <td class="p-3 font-bold text-white font-sans">${c.dept}</td>
-              <td class="p-3 text-center font-bold text-slate-300">${c.current_machines} máy</td>
+              <td class="p-3 text-center font-bold text-slate-300">${c.current_machines}</td>
               <td class="p-3 text-center">${c.cycle}s</td>
-              <td class="p-3 text-center text-slate-400">${c.current_capacity_shift} SP</td>
-              <td class="p-3 text-center text-cyan-300 font-bold">${c.demand} SP</td>
+              <td class="p-3 text-center text-slate-400">${c.current_capacity_shift}</td>
+              <td class="p-3 text-center text-cyan-300 font-bold">${c.demand}</td>
               <td class="p-3 text-center">
                 <div class="w-full bg-slate-800 rounded-full h-2.5 mb-1">
                   <div class="${barColor} h-2.5 rounded-full" style="width: ${Math.min(c.load, 100)}%"></div>
@@ -465,18 +478,22 @@
         const result = await res.json();
         const tbody = document.getElementById('incidentBody');
         tbody.innerHTML = '';
-        if (result.data) {
-          result.data.forEach(inc => {
-            tbody.innerHTML += `
-              <tr class="hover:bg-slate-900/50">
-                <td class="p-2.5 text-slate-400 font-mono">${new Date(inc.reported_at).toLocaleTimeString()}</td>
-                <td class="p-2.5 text-cyan-300 font-mono font-bold">${inc.incident_code}</td>
-                <td class="p-2.5 text-white font-sans">${inc.incident_name}</td>
-                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-800">${inc.severity}</span></td>
-              </tr>
-            `;
-          });
+        if (!result.data || result.data.length === 0) {
+          const curLang = getSavedLanguage();
+          const txtNone = curLang === 'en' ? 'No incidents recorded.' : (curLang === 'zh' ? '無異常記錄。' : 'Chưa có sự cố nào.');
+          tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-500">${txtNone}</td></tr>`;
+          return;
         }
+        result.data.forEach(inc => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-900/50">
+              <td class="p-2.5 text-slate-400 font-mono">${new Date(inc.reported_at).toLocaleTimeString()}</td>
+              <td class="p-2.5 text-cyan-300 font-mono font-bold">${inc.incident_code}</td>
+              <td class="p-2.5 text-white font-sans">${inc.incident_name}</td>
+              <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-800">${inc.severity}</span></td>
+            </tr>
+          `;
+        });
       } catch (e) {
         console.error(e);
       }
@@ -492,8 +509,8 @@
         if (result.data) {
           result.data.forEach(w => {
             const wipBadge = Number(w.wip_qty) > 0 
-              ? `<span class="px-2 py-0.5 rounded text-[10px] bg-amber-950 border border-amber-700 text-amber-300 font-bold">${w.wip_qty} PCS ĐANG CHỜ</span>`
-              : `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400">TRỐNG</span>`;
+              ? `<span class="px-2 py-0.5 rounded text-[10px] bg-amber-950 border border-amber-700 text-amber-300 font-bold">${w.wip_qty} PCS</span>`
+              : `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400">-</span>`;
 
             tbody.innerHTML += `
               <tr class="hover:bg-slate-900/50">
@@ -504,7 +521,7 @@
                 <td class="p-2.5 text-center">${wipBadge}</td>
                 <td class="p-2.5 text-center text-emerald-400 font-bold">${w.out_good_qty}</td>
                 <td class="p-2.5 text-center text-rose-400 font-bold">${w.out_scrap_qty}</td>
-                <td class="p-2.5 text-center font-sans text-[10px] text-slate-400">${Number(w.out_good_qty) > 0 ? 'Đã luân chuyển' : 'Chưa chạy'}</td>
+                <td class="p-2.5 text-center font-sans text-[10px] text-slate-400">${Number(w.out_good_qty) > 0 ? 'OK' : 'Pending'}</td>
               </tr>
             `;
           });

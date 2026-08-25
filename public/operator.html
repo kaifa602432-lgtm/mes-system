@@ -3,148 +3,189 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MES - Trạm Thao Tác Phân Xưởng</title>
+  <title>MES - Trạm Quét QR Thao Tác Xưởng</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/i18n.js"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen p-4 flex flex-col items-center justify-center">
-  <div class="max-w-md w-full bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-700 space-y-5">
-    
-    <div class="text-center border-b border-slate-700 pb-3 flex justify-between items-center">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 space-y-6">
+  <div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Header & Menu Điều Hướng & Đổi Ngôn Ngữ -->
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
       <div>
-        <h1 class="text-lg font-black text-blue-400 text-left">TRẠM SẢN XUẤT</h1>
-        <p class="text-[11px] text-slate-400 text-left">Quét thẻ & ghi nhận sản lượng</p>
+        <h1 data-i18n="op_header_title" class="text-xl font-black text-cyan-400">📱 TRẠM QUÉT QR & THAO TÁC CÔNG ĐOẠN XƯỞNG</h1>
+        <p data-i18n="op_header_sub" class="text-xs text-slate-400">Dành cho công nhân đứng máy cập nhật sản lượng OK / NG và kích hoạt ANDON</p>
       </div>
-      <a href="/" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-slate-300">Quay lại Web</a>
+      
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-xl mr-2">
+          <span class="text-xs">🌐</span>
+          <select id="langSelect" onchange="setLanguage(this.value)" class="bg-transparent text-xs text-white font-bold outline-none cursor-pointer">
+            <option value="vi" class="bg-slate-900 text-white">🇻🇳 Tiếng Việt</option>
+            <option value="en" class="bg-slate-900 text-white">🇬🇧 English</option>
+            <option value="zh" class="bg-slate-900 text-white">🇹🇼 繁體中文</option>
+          </select>
+        </div>
+
+        <a href="/" data-i18n="nav_create_wo" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">🏠 Phát Lệnh</a>
+        <a href="/analytics.html" data-i18n="nav_analytics" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-3.5 py-2 rounded-xl transition">📈 Phân Tích & APS</a>
+      </div>
     </div>
 
-    <!-- Bước 1: Quét mã QR -->
-    <div id="step-scan" class="space-y-3">
-      <label class="text-sm font-semibold text-slate-300">Quét / Nhập mã Thẻ công đoạn:</label>
+    <!-- Khối Quét Mã QR Thẻ Công Đoạn -->
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+      <h2 data-i18n="card_scan_qr" class="text-base font-bold text-white border-b border-slate-800 pb-3">📷 Quét Thẻ Công Đoạn</h2>
       <div class="flex gap-2">
-        <input type="text" id="ticketInput" placeholder="VD: WO-2026-001-STEP10" value="WO-2026-001-STEP10"
-               class="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-sm focus:border-blue-500 outline-none uppercase font-mono">
-        <button onclick="scanTicket()" class="bg-blue-600 hover:bg-blue-500 px-5 rounded-xl font-bold text-sm">Quét</button>
+        <input type="text" id="ticketInput" placeholder="Nhập mã thẻ hoặc Quét mã QR..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-cyan-500 font-mono text-sm">
+        <button onclick="scanTicket()" data-i18n="btn_scan_action" class="bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black px-6 rounded-xl transition text-sm">🔍 Quét</button>
       </div>
     </div>
 
-    <!-- Bước 2: Thông tin công đoạn & Nút Bắt đầu -->
-    <div id="step-process" class="hidden space-y-4">
-      <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 text-sm space-y-1">
-        <div>Sản phẩm: <b id="d-product" class="text-blue-300"></b></div>
-        <div>Công đoạn: <b id="d-op" class="text-yellow-400"></b></div>
-        <div>Mục tiêu: <b id="d-target" class="text-green-400 text-base"></b> PCS</div>
+    <!-- Chi tiết công đoạn & Bảng thao tác chạy máy -->
+    <div id="operatorActionCard" class="hidden bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
+      <div class="border-b border-slate-800 pb-4 flex justify-between items-center">
+        <div>
+          <span class="text-xs text-slate-400">Mã Lệnh: <b id="disp_wo" class="text-cyan-400 font-mono"></b></span>
+          <h3 id="disp_op" class="text-lg font-black text-white"></h3>
+          <p id="disp_prod" class="text-xs text-slate-300"></p>
+        </div>
+        <span id="disp_target" class="text-base font-black bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-xl text-yellow-300 font-mono">500 PCS</span>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
+      <!-- Thiết lập chạy máy -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
         <div>
-          <label class="text-xs text-slate-400">Máy thực hiện</label>
-          <select id="machineSelect" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-xs"></select>
+          <label data-i18n="lbl_machine_select" class="block text-slate-400 mb-1">Chọn Máy Gia Công</label>
+          <select id="sel_machine" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none"></select>
         </div>
         <div>
-          <label class="text-xs text-slate-400">Mã Công Nhân</label>
-          <input type="text" id="opCode" value="NV-088" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-xs">
+          <label data-i18n="lbl_operator_code" class="block text-slate-400 mb-1">Mã Công Nhân</label>
+          <input type="text" id="inp_operator" value="NV-088" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none font-mono font-bold">
         </div>
       </div>
 
-      <button id="btnStart" onclick="startWork()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-xl text-lg shadow-lg">
+      <!-- Nút Start -->
+      <button onclick="startJob()" id="btnStart" data-i18n="btn_start_job" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl transition text-sm">
         ▶ BẮT ĐẦU GIA CÔNG
       </button>
-    </div>
 
-    <!-- Bước 3: Báo cáo kết quả khi hoàn thành -->
-    <div id="step-finish" class="hidden space-y-4">
-      <div class="text-center py-2 bg-emerald-950 border border-emerald-700 rounded-xl text-emerald-300 text-sm animate-pulse font-semibold">
-        ⚙️ Máy đang hoạt động...
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="text-xs font-bold text-green-400">SL ĐẠT (OK)</label>
-          <input type="number" id="goodQty" value="495" class="w-full bg-slate-900 border-2 border-green-500 rounded-xl p-3 text-center text-xl font-black">
+      <!-- Khối Nhập Hoàn Thành -->
+      <div id="finishSection" class="hidden space-y-4 border-t border-slate-800 pt-4 text-xs">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label data-i18n="lbl_good_qty" class="block text-emerald-400 font-bold mb-1">SL ĐẠT (OK)</label>
+            <input type="number" id="inp_good" value="490" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-emerald-300 font-mono font-black text-base outline-none">
+          </div>
+          <div>
+            <label data-i18n="lbl_scrap_qty" class="block text-rose-400 font-bold mb-1">SL HỎNG (NG)</label>
+            <input type="number" id="inp_scrap" value="10" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-rose-300 font-mono font-black text-base outline-none">
+          </div>
         </div>
+
         <div>
-          <label class="text-xs font-bold text-red-400">SL HỎNG (NG)</label>
-          <input type="number" id="scrapQty" value="5" class="w-full bg-slate-900 border-2 border-red-500 rounded-xl p-3 text-center text-xl font-black">
+          <label data-i18n="lbl_defect_select" class="block text-slate-400 mb-1">Mã Lỗi Phát Sinh (Nếu có)</label>
+          <select id="sel_defect" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none">
+            <option value="DEF_STAMP_BURR">DEF_STAMP_BURR - Ba via dập vượt tiêu chuẩn</option>
+            <option value="DEF_CNC_DIM">DEF_CNC_DIM - Sai dung sai kích thước CNC</option>
+            <option value="DEF_WELD_POROSITY">DEF_WELD_POROSITY - Rỗ khí mối hàn</option>
+            <option value="DEF_PAINT_PEEL">DEF_PAINT_PEEL - Bong tróc màng sơn</option>
+          </select>
         </div>
-      </div>
 
-      <div>
-        <label class="text-xs text-slate-400">Mã lỗi (Nếu có NG):</label>
-        <select id="defectSelect" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-xs">
-          <option value="DEF_STAMP_BURR">DEF_STAMP_BURR - Ba via vượt tiêu chuẩn</option>
-          <option value="DEF_CNC_DIM_OUT">DEF_CNC_DIM_OUT - Sai dung sai kích thước</option>
-          <option value="DEF_WELD_POROSITY">DEF_WELD_POROSITY - Rỗ khí hàn</option>
-        </select>
+        <button onclick="finishJob()" data-i18n="btn_finish_job" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl transition text-sm">
+          ■ HOÀN THÀNH & LƯU
+        </button>
       </div>
-
-      <button onclick="finishWork()" class="w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-xl text-lg shadow-lg">
-        ■ HOÀN THÀNH & LƯU
-      </button>
     </div>
 
   </div>
 
   <script>
+    const API_BASE = '/api';
     let currentTicket = null;
     let currentLogId = null;
 
-    async function scanTicket() {
-      const ticketId = document.getElementById('ticketInput').value.trim();
-      const res = await fetch(`/api/shopfloor/scan/${ticketId}`);
-      const data = await res.json();
-      if (!data.success) return alert(data.message);
-
-      currentTicket = data.data;
-      document.getElementById('d-product').innerText = currentTicket.product_name;
-      document.getElementById('d-op').innerText = `Bước ${currentTicket.step_order} - ${currentTicket.operation_name}`;
-      document.getElementById('d-target').innerText = currentTicket.target_qty;
-
-      // Nạp danh sách máy
-      const mRes = await fetch('/api/machines');
-      const mData = await mRes.json();
-      const mSelect = document.getElementById('machineSelect');
-      mSelect.innerHTML = '';
-      mData.data.forEach(m => mSelect.innerHTML += `<option value="${m.machine_id}">${m.machine_name}</option>`);
-
-      document.getElementById('step-process').classList.remove('hidden');
-    }
-
-    async function startWork() {
-      const res = await fetch('/api/shopfloor/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticket_id: currentTicket.ticket_id,
-          machine_id: document.getElementById('machineSelect').value,
-          operator_code: document.getElementById('opCode').value
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        currentLogId = data.log_id;
-        document.getElementById('step-process').classList.add('hidden');
-        document.getElementById('step-finish').classList.remove('hidden');
+    async function loadMachines() {
+      try {
+        const res = await fetch(`${API_BASE}/machines`);
+        const result = await res.json();
+        const select = document.getElementById('sel_machine');
+        select.innerHTML = '';
+        if (result.data) {
+          result.data.forEach(m => {
+            select.innerHTML += `<option value="${m.machine_id}">${m.machine_id} - ${m.machine_name} (${m.department})</option>`;
+          });
+        }
+      } catch (e) {
+        console.error(e);
       }
     }
 
-    async function finishWork() {
-      const res = await fetch('/api/shopfloor/finish', {
+    async function scanTicket() {
+      const ticketId = document.getElementById('ticketInput').value.trim();
+      if (!ticketId) return alert('Vui lòng nhập mã thẻ!');
+
+      try {
+        const res = await fetch(`${API_BASE}/shopfloor/scan/${ticketId}`);
+        const result = await res.json();
+        if (result.success) {
+          currentTicket = result.data;
+          document.getElementById('disp_wo').innerText = currentTicket.wo_id;
+          document.getElementById('disp_op').innerText = `Bước ${currentTicket.step_order}: ${currentTicket.operation_name}`;
+          document.getElementById('disp_prod').innerText = `${currentTicket.product_id} - ${currentTicket.product_name}`;
+          document.getElementById('disp_target').innerText = `${currentTicket.target_qty} PCS`;
+          document.getElementById('operatorActionCard').classList.remove('hidden');
+        } else {
+          alert('Không tìm thấy thông tin thẻ!');
+        }
+      } catch (e) {
+        alert('Lỗi kết nối máy chủ!');
+      }
+    }
+
+    async function startJob() {
+      const body = {
+        ticket_id: currentTicket.ticket_id,
+        machine_id: document.getElementById('sel_machine').value,
+        operator_code: document.getElementById('inp_operator').value
+      };
+
+      const res = await fetch(`${API_BASE}/shopfloor/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticket_id: currentTicket.ticket_id,
-          log_id: currentLogId,
-          good_qty: Number(document.getElementById('goodQty').value),
-          scrap_qty: Number(document.getElementById('scrapQty').value),
-          defect_id: document.getElementById('defectSelect').value
-        })
+        body: JSON.stringify(body)
       });
-      const data = await res.json();
-      if (data.success) {
-        alert('Đã cập nhật sản lượng lên hệ thống MES!');
+      const result = await res.json();
+      if (result.success) {
+        currentLogId = result.log_id;
+        document.getElementById('btnStart').classList.add('hidden');
+        document.getElementById('finishSection').classList.remove('hidden');
+        alert('Máy đã chuyển sang trạng thái RUNNING. Chúc ca làm việc an toàn!');
+      }
+    }
+
+    async function finishJob() {
+      const body = {
+        ticket_id: currentTicket.ticket_id,
+        log_id: currentLogId,
+        good_qty: document.getElementById('inp_good').value,
+        scrap_qty: document.getElementById('inp_scrap').value,
+        defect_id: document.getElementById('sel_defect').value
+      };
+
+      const res = await fetch(`${API_BASE}/shopfloor/finish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert(result.message);
         location.reload();
       }
     }
+
+    loadMachines();
   </script>
 </body>
 </html>

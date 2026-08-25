@@ -3,153 +3,130 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MES - Dashboard & OEE Hiệu Suất Thiết Bị</title>
+  <title>MES - Dashboard OEE Hiệu Suất Thiết Bị</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/i18n.js"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 p-6 min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 space-y-6">
   <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Header -->
-    <div class="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
+    <!-- Header & Menu Điều Hướng & Đổi Ngôn Ngữ -->
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
       <div>
-        <h1 class="text-xl font-black text-cyan-400">📊 DASHBOARD GIÁM SÁT NĂNG SUẤT & HIỆU SUẤT OEE</h1>
-        <p class="text-xs text-slate-400">Đo lường Khả năng sẵn sàng (A), Hiệu suất (P) và Chất lượng (Q) theo từng máy</p>
+        <h1 data-i18n="oee_header_title" class="text-xl font-black text-cyan-400">📊 DASHBOARD HIỆU SUẤT THIẾT BỊ TỔNG THỂ (OEE)</h1>
+        <p data-i18n="oee_header_sub" class="text-xs text-slate-400">Giám sát thời gian thực 14 thiết bị: Sẵn sàng (A), Tốc độ (P), Chất lượng (Q)</p>
       </div>
-      <div class="flex gap-2">
-        <a href="/" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs px-4 py-2 rounded-lg transition">🏠 Trang Chủ</a>
-        <a href="/master-data.html" class="bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-xs px-4 py-2 rounded-lg transition">📦 Dữ Liệu Gốc</a>
+      
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-xl mr-2">
+          <span class="text-xs">🌐</span>
+          <select id="langSelect" onchange="setLanguage(this.value)" class="bg-transparent text-xs text-white font-bold outline-none cursor-pointer">
+            <option value="vi" class="bg-slate-900 text-white">🇻🇳 Tiếng Việt</option>
+            <option value="en" class="bg-slate-900 text-white">🇬🇧 English</option>
+            <option value="zh" class="bg-slate-900 text-white">🇹🇼 繁體中文</option>
+          </select>
+        </div>
+
+        <a href="/" data-i18n="nav_create_wo" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">🏠 Phát Lệnh</a>
+        <a href="/analytics.html" data-i18n="nav_analytics" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-3.5 py-2 rounded-xl transition">📈 Phân Tích & APS</a>
+        <a href="/master-data.html" data-i18n="nav_master" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition">📦 Dữ Liệu Gốc & BOM</a>
       </div>
     </div>
 
-    <!-- 1. BẢNG HIỆU SUẤT OEE THỜI GIAN THỰC -->
-    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-md space-y-4">
-      <h2 class="text-base font-bold text-white flex items-center justify-between">
-        <span>⚙️ Chỉ Số Hiệu Suất Thiết Bị Tổng Thể (OEE Overview)</span>
-        <span class="text-xs bg-cyan-950 border border-cyan-700 text-cyan-300 px-3 py-1 rounded-full font-mono">Tự động cập nhật: 5s</span>
-      </h2>
-      <div id="oeeGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Card OEE từng máy render ở đây -->
+    <!-- 4 Khối Chỉ Số Tổng Thể -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
+        <span data-i18n="card_overall_oee" class="text-xs text-slate-400 block">OEE Toàn Xưởng</span>
+        <b id="avgOee" class="text-2xl font-black text-cyan-400">88%</b>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
+        <span data-i18n="card_running_mc" class="text-xs text-slate-400 block">Máy Đang Chạy</span>
+        <b id="runningCount" class="text-2xl font-black text-emerald-400">0</b>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
+        <span data-i18n="card_idle_mc" class="text-xs text-slate-400 block">Máy Chờ / Nghỉ</span>
+        <b id="idleCount" class="text-2xl font-black text-amber-400">14</b>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
+        <span data-i18n="card_breakdown_mc" class="text-xs text-slate-400 block">Máy Sự Cố Dừng</span>
+        <b id="breakdownCount" class="text-2xl font-black text-rose-400">0</b>
       </div>
     </div>
 
-    <!-- 2. TIẾN ĐỘ THẺ CÔNG ĐOẠN (JOB TICKETS) -->
-    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-md space-y-4">
-      <h2 class="text-base font-bold text-white">📋 Tiến Độ Thẻ Công Đoạn Đang Thực Hiện</h2>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="bg-slate-950 text-slate-400 border-b border-slate-700">
-              <th class="p-3">Mã Thẻ (QR)</th>
-              <th class="p-3">Mã Lệnh</th>
-              <th class="p-3">Công Đoạn</th>
-              <th class="p-3 text-center">Mục Tiêu</th>
-              <th class="p-3 text-center">Đạt (OK)</th>
-              <th class="p-3 text-center">Hỏng (NG)</th>
-              <th class="p-3 text-center">Tỷ Lệ</th>
-              <th class="p-3 text-center">Trạng Thái</th>
-            </tr>
-          </thead>
-          <tbody id="ticketsBody" class="divide-y divide-slate-700">
-            <tr><td colspan="8" class="p-4 text-center text-slate-500">Đang tải...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <!-- Danh sách thẻ máy móc theo từng phân xưởng -->
+    <div id="machinesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
   </div>
 
   <script>
-    async function loadOEE() {
-      const res = await fetch('/api/dashboard/oee');
-      const result = await res.json();
-      const grid = document.getElementById('oeeGrid');
-      grid.innerHTML = '';
+    const API_BASE = '/api';
 
-      result.data.forEach(m => {
-        const oeeColor = m.oee >= 80 ? 'text-emerald-400' : (m.oee >= 50 ? 'text-yellow-400' : 'text-rose-400');
-        const statusBadge = m.current_status === 'RUNNING'
-          ? '<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-900 text-emerald-300 font-bold animate-pulse">RUNNING</span>'
-          : '<span class="px-2 py-0.5 rounded text-[10px] bg-slate-700 text-slate-400 font-bold">IDLE</span>';
-
-        grid.innerHTML += `
-          <div class="bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-3">
-            <div class="flex justify-between items-start">
-              <div>
-                <h3 class="font-bold text-sm text-slate-200">${m.machine_id}</h3>
-                <p class="text-[11px] text-slate-400">${m.machine_name}</p>
-              </div>
-              ${statusBadge}
-            </div>
-
-            <div class="text-center py-2 bg-slate-950 rounded-lg border border-slate-800">
-              <div class="text-[11px] text-slate-400">CHỈ SỐ OEE</div>
-              <div class="text-3xl font-black ${oeeColor}">${m.oee}%</div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-1 text-center text-[10px] bg-slate-950/60 p-2 rounded">
-              <div><span class="text-slate-400 block">Sẵn sàng (A)</span><b class="text-cyan-300">${m.availability}%</b></div>
-              <div><span class="text-slate-400 block">Hiệu suất (P)</span><b class="text-cyan-300">${m.performance}%</b></div>
-              <div><span class="text-slate-400 block">Chất lượng (Q)</span><b class="text-cyan-300">${m.quality}%</b></div>
-            </div>
-
-            <div class="flex justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800">
-              <span>Sản lượng Đạt: <b class="text-emerald-400">${m.total_good}</b></span>
-              <span>Lỗi: <b class="text-rose-400">${m.total_scrap}</b></span>
-            </div>
-          </div>
-        `;
-      });
-    }
-
-    async function loadTickets() {
+    async function loadOeeData() {
       try {
-        const resOrders = await fetch('/api/work-orders');
-        const dataOrders = await resOrders.json();
-        const tbodyTickets = document.getElementById('ticketsBody');
-        tbodyTickets.innerHTML = '';
+        const res = await fetch(`${API_BASE}/dashboard/oee`);
+        const result = await res.json();
+        const grid = document.getElementById('machinesGrid');
+        grid.innerHTML = '';
 
-        if (dataOrders.data && dataOrders.data.length > 0) {
-          for (const wo of dataOrders.data) {
-            const resTickets = await fetch(`/api/work-orders/${wo.wo_id}/tickets`);
-            const dataTickets = await resTickets.json();
+        if (result.data) {
+          let totalOee = 0;
+          let running = 0, idle = 0, breakdown = 0;
 
-            if (dataTickets.tickets) {
-              dataTickets.tickets.forEach(t => {
-                const percent = t.target_qty > 0 ? Math.round((t.good_qty / t.target_qty) * 100) : 0;
-                const statusBadge = t.status === 'COMPLETED' 
-                  ? '<span class="px-2 py-0.5 rounded bg-emerald-900 text-emerald-300 font-bold">COMPLETED</span>'
-                  : (t.status === 'RUNNING' 
-                    ? '<span class="px-2 py-0.5 rounded bg-amber-900 text-amber-300 font-bold">RUNNING</span>' 
-                    : '<span class="px-2 py-0.5 rounded bg-slate-700 text-slate-300">PENDING</span>');
+          result.data.forEach(m => {
+            totalOee += m.oee;
+            if (m.current_status === 'RUNNING') running++;
+            else if (m.current_status === 'BREAKDOWN') breakdown++;
+            else idle++;
 
-                tbodyTickets.innerHTML += `
-                  <tr class="hover:bg-slate-750">
-                    <td class="p-3 font-mono font-bold text-cyan-400">${t.ticket_id}</td>
-                    <td class="p-3 text-slate-300">${t.wo_id}</td>
-                    <td class="p-3 font-semibold text-slate-200">Bước ${t.step_order} - ${t.operation_name}</td>
-                    <td class="p-3 text-center">${t.target_qty}</td>
-                    <td class="p-3 text-center text-emerald-400 font-bold">${t.good_qty}</td>
-                    <td class="p-3 text-center text-rose-400 font-bold">${t.scrap_qty}</td>
-                    <td class="p-3 text-center font-bold text-cyan-400">${percent}%</td>
-                    <td class="p-3 text-center">${statusBadge}</td>
-                  </tr>
-                `;
-              });
-            }
-          }
+            const statusColor = m.current_status === 'RUNNING' 
+              ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+              : (m.current_status === 'BREAKDOWN' ? 'bg-rose-950 text-rose-300 border-rose-700 animate-pulse' : 'bg-slate-800 text-slate-400 border-slate-700');
+
+            grid.innerHTML += `
+              <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <b class="text-sm text-white">${m.machine_name}</b>
+                    <span class="text-[11px] text-slate-400 block font-mono">${m.machine_id} - ${m.department}</span>
+                  </div>
+                  <span class="px-2 py-0.5 rounded text-[10px] border font-bold ${statusColor}">${m.current_status}</span>
+                </div>
+
+                <div class="flex items-baseline justify-between border-y border-slate-800/80 py-3">
+                  <span class="text-xs text-slate-400">Chỉ số OEE:</span>
+                  <span class="text-xl font-black ${m.oee >= 85 ? 'text-emerald-400' : 'text-amber-400'}">${m.oee}%</span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div class="bg-slate-950 p-2 rounded-lg">
+                    <span class="text-[10px] text-slate-500 block">Sẵn Sàng (A)</span>
+                    <b class="text-slate-300">${m.availability}%</b>
+                  </div>
+                  <div class="bg-slate-950 p-2 rounded-lg">
+                    <span class="text-[10px] text-slate-500 block">Hiệu Suất (P)</span>
+                    <b class="text-slate-300">${m.performance}%</b>
+                  </div>
+                  <div class="bg-slate-950 p-2 rounded-lg">
+                    <span class="text-[10px] text-slate-500 block">Chất Lượng (Q)</span>
+                    <b class="text-slate-300">${m.quality}%</b>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+
+          document.getElementById('avgOee').innerText = `${Math.round(totalOee / result.data.length)}%`;
+          document.getElementById('runningCount').innerText = running;
+          document.getElementById('idleCount').innerText = idle;
+          document.getElementById('breakdownCount').innerText = breakdown;
         }
       } catch (e) {
         console.error(e);
       }
     }
 
-    function refreshAll() {
-      loadOEE();
-      loadTickets();
-    }
-
-    refreshAll();
-    setInterval(refreshAll, 5000);
+    loadOeeData();
+    setInterval(loadOeeData, 5000);
   </script>
 </body>
 </html>
