@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MES - Phân Tích Dòng Chảy WIP, Lập Lịch APS & Cân Bằng Nhân Lực</title>
+  <title>MES - Phân Tích Năng Suất, WIP, APS & Định Biên Nhân Lực</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js & Bộ dịch đa ngôn ngữ i18n -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/i18n.js"></script>
 </head>
@@ -19,9 +20,10 @@
       </div>
       
       <div class="flex flex-wrap items-center gap-2">
+        <!-- Hộp chọn 3 ngôn ngữ -->
         <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-xl mr-2">
           <span class="text-xs">🌐</span>
-          <select id="langSelect" onchange="setLanguage(this.value)" class="bg-transparent text-xs text-white font-bold outline-none cursor-pointer">
+          <select id="langSelect" onchange="handleLangSwitch(this.value)" class="bg-transparent text-xs text-white font-bold outline-none cursor-pointer">
             <option value="vi" class="bg-slate-900 text-white">🇻🇳 Tiếng Việt</option>
             <option value="en" class="bg-slate-900 text-white">🇬🇧 English</option>
             <option value="zh" class="bg-slate-900 text-white">🇹🇼 繁體中文</option>
@@ -166,9 +168,9 @@
           <div>
             <label data-i18n="lbl_shift_aps" class="block text-slate-400 mb-1">Ca Sản Xuất Dự Kiến</label>
             <select id="aps_shift" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white outline-none">
-              <option value="SHIFT_1">Ca Sáng (06:00 - 14:00) - 7.25h</option>
-              <option value="SHIFT_2">Ca Chiều (14:00 - 22:00) - 7.25h</option>
-              <option value="SHIFT_3">Ca Đêm (22:00 - 06:00) - 7.25h</option>
+              <option value="SHIFT_1" id="opt_shift_1">Ca Sáng (06:00 - 14:00) - 7.25h</option>
+              <option value="SHIFT_2" id="opt_shift_2">Ca Chiều (14:00 - 22:00) - 7.25h</option>
+              <option value="SHIFT_3" id="opt_shift_3">Ca Đêm (22:00 - 06:00) - 7.25h</option>
             </select>
           </div>
           <button type="submit" data-i18n="btn_calc_aps" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-3 rounded-xl transition text-sm">
@@ -234,8 +236,6 @@
 
     <!-- 4. NHẬT KÝ SỰ CỐ & BIỂU ĐỒ PARETO LỖI -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      
-      <!-- Nhật ký sự cố ANDON -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
         <h2 data-i18n="andon_header" class="text-base font-bold text-white border-b border-slate-800 pb-2">⚠️ Nhật Ký Sự Cố & Hành Động Ứng Phó (Andon Logs)</h2>
         <div class="overflow-x-auto max-h-64">
@@ -255,14 +255,12 @@
         </div>
       </div>
 
-      <!-- Biểu đồ Pareto Lỗi -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
         <h2 data-i18n="pareto_header" class="text-base font-bold text-white border-b border-slate-800 pb-2">📊 Biểu Đồ Pareto Lỗi Chất Lượng QC (Defect Pareto)</h2>
         <div class="h-56">
           <canvas id="paretoChart"></canvas>
         </div>
       </div>
-
     </div>
 
     <!-- 5. MA TRẬN DÒNG CHẢY BÁN THÀNH PHẨM (WIP FLOW MATRIX) -->
@@ -294,6 +292,23 @@
   <script>
     const API_BASE = '/api';
     let paretoChartInstance = null;
+
+    function handleLangSwitch(lang) {
+      setLanguage(lang);
+      updateShiftOptions(lang);
+      loadAllData();
+    }
+
+    function updateShiftOptions(lang) {
+      const s1 = document.getElementById('opt_shift_1');
+      const s2 = document.getElementById('opt_shift_2');
+      const s3 = document.getElementById('opt_shift_3');
+      if (s1 && s2 && s3) {
+        s1.innerText = t("Ca Sáng (06:00 - 14:00) - 7.25h");
+        s2.innerText = t("Ca Chiều (14:00 - 22:00) - 7.25h");
+        s3.innerText = t("Ca Đêm (22:00 - 06:00) - 7.25h");
+      }
+    }
 
     // 1. Kích hoạt kịch bản sự cố
     async function triggerScenario(type) {
@@ -328,7 +343,7 @@
       }
     }
 
-    // 3. Tải phân tích Nhân lực thừa / thiếu
+    // 3. Tải phân tích Nhân lực thừa / thiếu (Dùng hàm t(...) tự động dịch)
     async function loadManpowerAnalysis() {
       try {
         const res = await fetch(`${API_BASE}/analytics/manpower-analysis`);
@@ -336,14 +351,14 @@
         const tbody = document.getElementById('manpowerBody');
         tbody.innerHTML = '';
 
+        const curLang = getSavedLanguage();
+
         if (result.total_demand) {
-          const curLang = getSavedLanguage();
           const lbl = curLang === 'en' ? 'Total Demand: ' : (curLang === 'zh' ? '總需求: ' : 'Tổng nhu cầu: ');
           document.getElementById('totalDemandBadge').innerText = `${lbl}${result.total_demand.toLocaleString()} PCS`;
         }
 
         if (result.data) {
-          const curLang = getSavedLanguage();
           result.data.forEach(m => {
             let statusBadge = '';
             let loadTextColor = '';
@@ -364,13 +379,13 @@
 
             tbody.innerHTML += `
               <tr class="hover:bg-slate-900/50">
-                <td class="p-3 font-bold text-white font-sans">${m.department}</td>
+                <td class="p-3 font-bold text-white font-sans">${t(m.department)}</td>
                 <td class="p-3 text-center font-bold text-slate-300">${m.current_workers}</td>
                 <td class="p-3 text-center">${m.minutes_needed.toLocaleString()}m</td>
                 <td class="p-3 text-center font-bold text-cyan-300">${m.workers_required}</td>
                 <td class="p-3 text-center ${loadTextColor}">${m.load_percent}%</td>
                 <td class="p-3 text-center font-sans">${statusBadge}</td>
-                <td class="p-3 font-sans ${m.worker_gap > 0 ? 'text-amber-300 font-bold' : 'text-slate-400'}">${m.recommendation}</td>
+                <td class="p-3 font-sans ${m.worker_gap > 0 ? 'text-amber-300 font-bold' : 'text-slate-400'}">${t(m.recommendation)}</td>
               </tr>
             `;
           });
@@ -422,11 +437,14 @@
           ? `<span class="px-2 py-0.5 rounded text-[10px] bg-rose-950 border border-rose-700 text-rose-300 font-bold animate-pulse">${txtOv}</span>`
           : `<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 border border-emerald-700 text-emerald-300">${txtOpt}</span>`;
 
+        const opTrans = t(`Bước ${item.step_order} - ${item.operation_name}`);
+        const opEffLabel = curLang === 'en' ? 'Eff: ' : (curLang === 'zh' ? '效率: ' : 'Hiệu suất: ');
+
         tbody.innerHTML += `
           <tr class="hover:bg-slate-900/50">
-            <td class="p-2.5 font-sans"><b>Bước ${item.step_order}</b> - ${item.operation_name}</td>
+            <td class="p-2.5 font-sans font-bold text-white">${opTrans}</td>
             <td class="p-2.5 text-yellow-300 font-sans">${item.machine_name} <br><span class="text-[10px] text-slate-400 font-mono">OEE: ${item.machine_oee}%</span></td>
-            <td class="p-2.5 text-cyan-300 font-sans">${item.operator_code} <br><span class="text-[10px] text-slate-400 font-mono">Hiệu suất: ${item.operator_eff}%</span></td>
+            <td class="p-2.5 text-cyan-300 font-sans">${item.operator_code} <br><span class="text-[10px] text-slate-400 font-mono">${opEffLabel}${item.operator_eff}%</span></td>
             <td class="p-2.5 text-center font-bold">${item.required_minutes}p / ${item.shift_minutes}p</td>
             <td class="p-2.5 text-center ${loadColor}">${item.load_percent}%</td>
             <td class="p-2.5 text-center font-sans">${badge}</td>
@@ -435,7 +453,7 @@
       });
     }
 
-    // 5. Phân tích Năng Lực & Đề xuất Đầu tư CapEx
+    // 5. Phân tích Năng Lực & Đề xuất Đầu tư CapEx (Dùng hàm t(...) tự động dịch)
     async function loadCapacityAnalysis() {
       const woId = document.getElementById('aps_wo_id').value;
       if (!woId) return;
@@ -453,7 +471,7 @@
 
           tbody.innerHTML += `
             <tr class="hover:bg-slate-900/50">
-              <td class="p-3 font-bold text-white font-sans">${c.dept}</td>
+              <td class="p-3 font-bold text-white font-sans">${t(c.dept)}</td>
               <td class="p-3 text-center font-bold text-slate-300">${c.current_machines}</td>
               <td class="p-3 text-center">${c.cycle}s</td>
               <td class="p-3 text-center text-slate-400">${c.current_capacity_shift}</td>
@@ -464,22 +482,23 @@
                 </div>
                 <span class="text-[10px] font-bold ${isOver ? 'text-rose-400' : 'text-emerald-400'}">${c.load}%</span>
               </td>
-              <td class="p-3 font-sans ${sugColor}">${c.suggestion}</td>
+              <td class="p-3 font-sans ${sugColor}">${t(c.suggestion)}</td>
             </tr>
           `;
         });
       }
     }
 
-    // 6. Tải danh mục sự cố
+    // 6. Tải danh mục sự cố (Dùng hàm t(...) tự động dịch)
     async function loadIncidents() {
       try {
         const res = await fetch(`${API_BASE}/analytics/incidents`);
         const result = await res.json();
         const tbody = document.getElementById('incidentBody');
         tbody.innerHTML = '';
+        const curLang = getSavedLanguage();
+
         if (!result.data || result.data.length === 0) {
-          const curLang = getSavedLanguage();
           const txtNone = curLang === 'en' ? 'No incidents recorded.' : (curLang === 'zh' ? '無異常記錄。' : 'Chưa có sự cố nào.');
           tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-500">${txtNone}</td></tr>`;
           return;
@@ -489,7 +508,7 @@
             <tr class="hover:bg-slate-900/50">
               <td class="p-2.5 text-slate-400 font-mono">${new Date(inc.reported_at).toLocaleTimeString()}</td>
               <td class="p-2.5 text-cyan-300 font-mono font-bold">${inc.incident_code}</td>
-              <td class="p-2.5 text-white font-sans">${inc.incident_name}</td>
+              <td class="p-2.5 text-white font-sans">${t(inc.incident_name)}</td>
               <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-800">${inc.severity}</span></td>
             </tr>
           `;
@@ -499,7 +518,7 @@
       }
     }
 
-    // 7. Tải WIP Flow
+    // 7. Tải WIP Flow (Dùng hàm t(...) tự động dịch)
     async function loadWIPFlow() {
       try {
         const res = await fetch(`${API_BASE}/analytics/wip-flow`);
@@ -512,16 +531,18 @@
               ? `<span class="px-2 py-0.5 rounded text-[10px] bg-amber-950 border border-amber-700 text-amber-300 font-bold">${w.wip_qty} PCS</span>`
               : `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400">-</span>`;
 
+            const statusLabel = Number(w.out_good_qty) > 0 ? t('Đã hoàn thành') : t('Chưa gia công');
+
             tbody.innerHTML += `
               <tr class="hover:bg-slate-900/50">
                 <td class="p-2.5 font-bold text-cyan-400">${w.wo_id}</td>
-                <td class="p-2.5 font-sans">${w.product_name}</td>
-                <td class="p-2.5 font-sans font-semibold">Bước ${w.step_order} - ${w.operation_name}</td>
+                <td class="p-2.5 font-sans text-slate-300">${t(w.product_name)}</td>
+                <td class="p-2.5 font-sans font-semibold text-slate-200">${t(`Bước ${w.step_order} - ${w.operation_name}`)}</td>
                 <td class="p-2.5 text-center">${w.in_qty}</td>
                 <td class="p-2.5 text-center">${wipBadge}</td>
                 <td class="p-2.5 text-center text-emerald-400 font-bold">${w.out_good_qty}</td>
                 <td class="p-2.5 text-center text-rose-400 font-bold">${w.out_scrap_qty}</td>
-                <td class="p-2.5 text-center font-sans text-[10px] text-slate-400">${Number(w.out_good_qty) > 0 ? 'OK' : 'Pending'}</td>
+                <td class="p-2.5 text-center font-sans text-[10px] text-slate-400">${statusLabel}</td>
               </tr>
             `;
           });
@@ -540,7 +561,7 @@
         select.innerHTML = '';
         if (result.data) {
           result.data.forEach(wo => {
-            select.innerHTML += `<option value="${wo.wo_id}">${wo.wo_id} - ${wo.product_name} (${wo.plan_quantity} PCS)</option>`;
+            select.innerHTML += `<option value="${wo.wo_id}">${wo.wo_id} - ${t(wo.product_name)} (${wo.plan_quantity} PCS)</option>`;
           });
         }
       } catch (e) {
@@ -553,7 +574,12 @@
       try {
         const res = await fetch(`${API_BASE}/analytics/defect-pareto`);
         const result = await res.json();
-        const labels = result.data && result.data.length > 0 ? result.data.map(d => d.defect_name) : ['Ba via dập', 'Sai kích thước CNC', 'Rỗ khí hàn'];
+        const curLang = getSavedLanguage();
+
+        const labels = (result.data && result.data.length > 0) 
+          ? result.data.map(d => t(d.defect_name))
+          : [t('Ba via dập vượt tiêu chuẩn'), t('Bong tróc màng sơn'), t('Rỗ khí mối hàn')];
+
         const values = result.data && result.data.length > 0 ? result.data.map(d => Number(d.total_qty)) : [100, 50, 30];
 
         const ctx = document.getElementById('paretoChart').getContext('2d');
@@ -563,7 +589,7 @@
           data: {
             labels: labels,
             datasets: [{
-              label: 'Phế phẩm (NG)',
+              label: curLang === 'en' ? 'Scrap Qty (NG)' : (curLang === 'zh' ? '不良數量 (NG)' : 'Phế phẩm (NG)'),
               data: values,
               backgroundColor: 'rgba(244, 63, 94, 0.7)',
               borderColor: 'rgb(244, 63, 94)',
@@ -587,6 +613,8 @@
     }
 
     function loadAllData() {
+      const curLang = getSavedLanguage();
+      updateShiftOptions(curLang);
       loadIncidents();
       loadWIPFlow();
       loadWOForAPS().then(() => {

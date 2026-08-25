@@ -1,16 +1,15 @@
 // =========================================================================
-// THƯ VIỆN ĐA NGÔN NGỮ TOÀN HỆ THỐNG MES (VI - EN - ZH)
+// THƯ VIỆN ĐA NGÔN NGỮ ĐỘNG TOÀN HỆ THỐNG MES (VI - EN - ZH)
 // =========================================================================
+
+// 1. TỪ ĐIỂN CỐ ĐỊNH CHO GIAO DIỆN (UI LABELS)
 const mesTranslations = {
   vi: {
-    // Menu & Header
     nav_create_wo: "🏠 Phát Lệnh",
     nav_oee: "📊 Dashboard OEE",
     nav_master: "📦 Dữ Liệu Gốc & BOM",
     nav_scan: "📱 Trạm Quét QR",
     nav_analytics: "📈 Phân Tích & APS",
-    
-    // Trang Phát Lệnh (index.html)
     app_title: "HỆ THỐNG MES - QUẢN LÝ SẢN XUẤT",
     app_subtitle: "Theo dõi tiến độ, phát lệnh, cấp phát định mức & thẻ công đoạn QR",
     card_create_wo: "➕ Tạo Lệnh Sản Xuất",
@@ -30,44 +29,6 @@ const mesTranslations = {
     btn_view_qr: "Xem Thẻ QR",
     card_qr_section: "🏷️ Thẻ Công Đoạn & Mã QR Lệnh:",
     btn_print_cards: "🖨️ In Danh Sách Thẻ",
-
-    // Trang Trạm Quét QR (operator.html)
-    op_header_title: "📱 TRẠM QUÉT QR & THAO TÁC CÔNG ĐOẠN XƯỞNG",
-    op_header_sub: "Dành cho công nhân đứng máy cập nhật sản lượng OK / NG và kích hoạt ANDON",
-    card_scan_qr: "📷 Quét Thẻ Công Đoạn",
-    lbl_scan_input: "Nhập mã thẻ hoặc Quét mã QR",
-    btn_scan_action: "🔍 Quét",
-    lbl_ticket_info: "Thông Tin Công Đoạn",
-    lbl_machine_select: "Chọn Máy Gia Công",
-    lbl_operator_code: "Mã Công Nhân",
-    btn_start_job: "▶ BẮT ĐẦU GIA CÔNG",
-    btn_finish_job: "■ HOÀN THÀNH & LƯU",
-    lbl_good_qty: "SL ĐẠT (OK)",
-    lbl_scrap_qty: "SL HỎNG (NG)",
-    lbl_defect_select: "Mã Lỗi Phát Sinh (Nếu có)",
-
-    // Trang Dashboard OEE (dashboard.html)
-    oee_header_title: "📊 DASHBOARD HIỆU SUẤT THIẾT BỊ TỔNG THỂ (OEE)",
-    oee_header_sub: "Giám sát thời gian thực 14 thiết bị: Sẵn sàng (A), Tốc độ (P), Chất lượng (Q)",
-    lbl_dept_stamp: "Xưởng Dập",
-    lbl_dept_cnc: "Xưởng Phay & Tiện CNC",
-    lbl_dept_weld: "Xưởng Hàn Kết Cấu",
-    lbl_dept_paint: "Xưởng Sơn Tĩnh Điện",
-    lbl_dept_assy: "Xưởng Lắp Ráp & QC",
-    card_overall_oee: "OEE Toàn Xưởng",
-    card_running_mc: "Máy Đang Chạy",
-    card_idle_mc: "Máy Chờ / Nghỉ",
-    card_breakdown_mc: "Máy Sự Cố Dừng",
-
-    // Trang Master Data & BOM (master-data.html)
-    md_header_title: "📦 QUẢN LÝ DỮ LIỆU GỐC & ĐỊNH MỨC BOM",
-    md_header_sub: "Danh mục sản phẩm, cấu trúc BOM nguyên vật liệu và tiến trình gia công Routings",
-    card_product_list: "Danh Mục Thành Phẩm",
-    card_material_stock: "Tồn Kho Nguyên Vật Liệu (SS400, Sơn, Ống thép)",
-    card_bom_structure: "Cấu Trúc Định Mức BOM Chi Tiết",
-    card_routing_steps: "Quy Trình Công Nghệ (Routings)",
-
-    // Trang Phân Tích & APS (analytics.html)
     an_title: "📈 TRUNG TÂM PHÂN TÍCH NĂNG SUẤT, WIP, APS & ĐỊNH BIÊN NHÂN LỰC",
     an_subtitle: "Tính toán % tải thực tế theo OEE máy móc, năng suất công nhân, cảnh báo quá tải và định biên nhân sự theo ca",
     sim_header: "🚨 TRUNG TÂM KÍCH HOẠT GIẢ LẬP SỰ CỐ & ĐẨY TẢI TOÀN BỘ NHÀ MÁY",
@@ -98,16 +59,12 @@ const mesTranslations = {
     wip_header: "🔄 Dòng Chảy Bán Thành Phẩm Giữa Các Công Đoạn (WIP Tracking)",
     th_wip_wo: "Mã WO", th_wip_prod: "Sản Phẩm", th_wip_op: "Công Đoạn", th_wip_in: "Đầu Vào (In)", th_wip_queue: "Tồn Chờ Gia Công (WIP)", th_wip_ok: "Hoàn Thành (OK)", th_wip_ng: "Phế Phẩm (NG)", th_wip_status: "Trạng Thái"
   },
-
   en: {
-    // Menu & Header
     nav_create_wo: "🏠 Release WO",
     nav_oee: "📊 OEE Dashboard",
     nav_master: "📦 Master Data & BOM",
     nav_scan: "📱 QR Terminal",
     nav_analytics: "📈 Analytics & APS",
-    
-    // Work Order Release (index.html)
     app_title: "MES SYSTEM - PRODUCTION EXECUTION",
     app_subtitle: "Real-time tracking, order release, BOM auto-allocation & routing QR job tickets",
     card_create_wo: "➕ Create Work Order",
@@ -127,44 +84,6 @@ const mesTranslations = {
     btn_view_qr: "View QR Tickets",
     card_qr_section: "🏷️ Routing Step Job Tickets & QR Codes:",
     btn_print_cards: "🖨️ Print Job Tickets",
-
-    // QR Operator Terminal (operator.html)
-    op_header_title: "📱 SHOPFLOOR QR TERMINAL & DISPATCH",
-    op_header_sub: "For machine operators to log OK/NG output, scan job tickets, and trigger Andon",
-    card_scan_qr: "📷 Scan Routing Job Ticket",
-    lbl_scan_input: "Enter Ticket Code or Scan QR",
-    btn_scan_action: "🔍 Scan",
-    lbl_ticket_info: "Operation Details",
-    lbl_machine_select: "Select Assigned Machine",
-    lbl_operator_code: "Operator ID",
-    btn_start_job: "▶ START OPERATION",
-    btn_finish_job: "■ COMPLETE & SAVE",
-    lbl_good_qty: "GOOD QTY (OK)",
-    lbl_scrap_qty: "SCRAP QTY (NG)",
-    lbl_defect_select: "Defect Code (If scrap occurred)",
-
-    // OEE Dashboard (dashboard.html)
-    oee_header_title: "📊 OVERALL EQUIPMENT EFFECTIVENESS (OEE) DASHBOARD",
-    oee_header_sub: "Real-time monitoring of 14 machines: Availability (A), Performance (P), Quality (Q)",
-    lbl_dept_stamp: "Stamping Shop",
-    lbl_dept_cnc: "CNC Milling & Turning",
-    lbl_dept_weld: "Welding & Structure",
-    lbl_dept_paint: "Powder Coating Shop",
-    lbl_dept_assy: "Assembly & QC Line",
-    card_overall_oee: "Plant-wide OEE",
-    card_running_mc: "Running Machines",
-    card_idle_mc: "Idle / Standby",
-    card_breakdown_mc: "Breakdown / Down",
-
-    // Master Data (master-data.html)
-    md_header_title: "📦 MASTER DATA & BILL OF MATERIALS (BOM)",
-    md_header_sub: "Finished goods catalogue, raw material inventory & process routing plans",
-    card_product_list: "Product Master List",
-    card_material_stock: "Raw Material Inventory (Coils, Powder, Pipes)",
-    card_bom_structure: "Detailed Bill of Materials (BOM)",
-    card_routing_steps: "Standard Process Routings",
-
-    // Analytics & APS (analytics.html)
     an_title: "📈 PRODUCTIVITY, WIP, APS & HEADCOUNT CAPACITY ANALYSIS CENTER",
     an_subtitle: "Calculate actual load % by machine OEE, worker efficiency, overload warnings and shift headcount planning",
     sim_header: "🚨 INCIDENT SIMULATION & PLANT-WIDE FLOODING CENTER",
@@ -195,16 +114,12 @@ const mesTranslations = {
     wip_header: "🔄 WIP Flow Tracking Between Operations",
     th_wip_wo: "WO ID", th_wip_prod: "Product", th_wip_op: "Operation", th_wip_in: "Inbound", th_wip_queue: "Queue WIP", th_wip_ok: "Completed (OK)", th_wip_ng: "Scrap (NG)", th_wip_status: "Status"
   },
-
   zh: {
-    // Menu & Header
     nav_create_wo: "🏠 發放工單",
     nav_oee: "📊 OEE 儀表板",
     nav_master: "📦 基礎數據與 BOM",
     nav_scan: "📱 QR 掃碼工作站",
     nav_analytics: "📈 分析與 APS",
-    
-    // Work Order Release (index.html)
     app_title: "MES 生產執行與製造管理系統",
     app_subtitle: "實時進度追蹤、工單發放、BOM 物料自動扣減及工序 QR 隨行卡",
     card_create_wo: "➕ 創建生產工單",
@@ -224,44 +139,6 @@ const mesTranslations = {
     btn_view_qr: "查看 QR 卡",
     card_qr_section: "🏷️ 工序隨行卡與 QR 碼：",
     btn_print_cards: "🖨️ 列印工序卡",
-
-    // QR Operator Terminal (operator.html)
-    op_header_title: "📱 車間現場 QR 掃碼操作站",
-    op_header_sub: "供機台操作員記錄合格/報廢數量、掃描工序卡並觸發 Andon 警報",
-    card_scan_qr: "📷 掃描工序隨行卡",
-    lbl_scan_input: "輸入卡號或掃描 QR 碼",
-    btn_scan_action: "🔍 查詢",
-    lbl_ticket_info: "工序詳細信息",
-    lbl_machine_select: "選擇加工設備",
-    lbl_operator_code: "操作員編號",
-    btn_start_job: "▶ 開始加工",
-    btn_finish_job: "■ 完工並保存",
-    lbl_good_qty: "合格數量 (OK)",
-    lbl_scrap_qty: "報廢數量 (NG)",
-    lbl_defect_select: "不良原因代碼 (如有報廢)",
-
-    // OEE Dashboard (dashboard.html)
-    oee_header_title: "📊 設備總體效率 (OEE) 實時監控看板",
-    oee_header_sub: "實時監控 14 台設備：時間稼動率 (A)、性能稼動率 (P)、良品率 (Q)",
-    lbl_dept_stamp: "沖壓車間",
-    lbl_dept_cnc: "CNC 銑削與車削",
-    lbl_dept_weld: "焊接與結構車間",
-    lbl_dept_paint: "粉體塗裝車間",
-    lbl_dept_assy: "組裝與品管線",
-    card_overall_oee: "全廠綜合 OEE",
-    card_running_mc: "運行中設備",
-    card_idle_mc: "待機 / 停用",
-    card_breakdown_mc: "故障停機設備",
-
-    // Master Data (master-data.html)
-    md_header_title: "📦 基礎數據與物料清單 (BOM) 管理",
-    md_header_sub: "成品料號、原材料庫存 (鋼卷、塗料、鋼管) 及工藝工序路徑",
-    card_product_list: "成品料號主檔",
-    card_material_stock: "原材料現有庫存",
-    card_bom_structure: "物料清單 (BOM) 明細",
-    card_routing_steps: "標準工藝工序路徑 (Routings)",
-
-    // Analytics & APS (analytics.html)
     an_title: "📈 產能、WIP、APS 排程與人力編制分析中心",
     an_subtitle: "根據設備 OEE、工人效率計算實際負載百分比、過載警告及班次人力規劃",
     sim_header: "🚨 異常狀況模擬與全廠負荷中心",
@@ -294,38 +171,139 @@ const mesTranslations = {
   }
 };
 
-// Hàm lấy ngôn ngữ hiện tại đã lưu
+// 2. TỪ ĐIỂN DỮ LIỆU ĐỘNG TỰ ĐỘNG (DYNAMIC DATA DICTIONARY)
+const dynamicLexicon = {
+  // Phân xưởng
+  "Xưởng Dập": { en: "Stamping Shop", zh: "沖壓車間" },
+  "Xưởng CNC": { en: "CNC Machining", zh: "CNC 加工車間" },
+  "Xưởng Hàn": { en: "Welding Shop", zh: "焊接車間" },
+  "Xưởng Sơn": { en: "Painting Shop", zh: "塗裝車間" },
+  "Xưởng Lắp Ráp": { en: "Assembly Line", zh: "組裝線" },
+  "Xưởng QC": { en: "QC Inspection", zh: "品管檢驗" },
+
+  // Sản phẩm
+  "Khung đỡ máy hoàn thiện": { en: "Complete Machine Frame FG", zh: "完整機架成品" },
+  "Khung máy": { en: "Machine Frame", zh: "機台框架" },
+  "Vỏ tủ điện": { en: "Electrical Enclosure", zh: "配電箱外殼" },
+  "Tay đỡ robot": { en: "Robot Arm Bracket", zh: "機器人機械臂支架" },
+
+  // Công đoạn
+  "Bước 10 - Dập Cắt & Định Hình": { en: "Step 10 - Blanking & Stamping", zh: "工序 10 - 沖壓下料與成型" },
+  "Bước 20 - Phay CNC Chi Tiết": { en: "Step 20 - Precision CNC Milling", zh: "工序 20 - CNC 精密銑削" },
+  "Bước 30 - Hàn Kết Cấu Khung": { en: "Step 30 - Structure Frame Welding", zh: "工序 30 - 結構框架焊接" },
+  "Bước 40 - Sơn Tĩnh Điện": { en: "Step 40 - Powder Coating", zh: "工序 40 - 粉體靜電塗裝" },
+  "Bước 50 - Lắp Ráp & Đóng Gói": { en: "Step 50 - Assembly & Final Packing", zh: "工序 50 - 組裝與成品包裝" },
+
+  // Ca sản xuất
+  "Ca Sáng (06:00 - 14:00) - 7.25h": { en: "Morning Shift (06:00 - 14:00) - 7.25h", zh: "早班 (06:00 - 14:00) - 7.25h" },
+  "Ca Chiều (14:00 - 22:00) - 7.25h": { en: "Afternoon Shift (14:00 - 22:00) - 7.25h", zh: "中班 (14:00 - 22:00) - 7.25h" },
+  "Ca Đêm (22:00 - 06:00) - 7.25h": { en: "Night Shift (22:00 - 06:00) - 7.25h", zh: "夜班 (22:00 - 06:00) - 7.25h" },
+
+  // Trạng thái WIP
+  "Đã hoàn thành": { en: "Completed", zh: "已完成" },
+  "Chưa gia công": { en: "Pending", zh: "待加工" },
+  "Đang chờ": { en: "Queued", zh: "等待中" }
+};
+
+// Hàm lấy ngôn ngữ lưu trữ
 function getSavedLanguage() {
   return localStorage.getItem('mes_language') || 'vi';
 }
 
-// Hàm thay đổi ngôn ngữ và lưu vào localStorage cho toàn bộ hệ thống
+// Hàm chuyển đổi ngôn ngữ
 function setLanguage(lang) {
   localStorage.setItem('mes_language', lang);
   applyTranslations(lang);
 }
 
-// Hàm quét tất cả các thẻ có thuộc tính data-i18n để tự động dịch
+// 3. HÀM DỊCH CHUỖI ĐỘNG THÔNG MINH (UNIVERSAL TRANSLATOR)
+function t(text) {
+  if (!text) return '';
+  const lang = getSavedLanguage();
+  if (lang === 'vi') return text;
+
+  // 1. Kiểm tra khớp chính xác trong từ điển
+  if (dynamicLexicon[text] && dynamicLexicon[text][lang]) {
+    return dynamicLexicon[text][lang];
+  }
+
+  // 2. Tự động dịch mẫu khuyến nghị nhân lực động (Regex matching)
+  // Mẫu: THIẾU X CÔNG NHÂN (Cần điều động thêm hoặc tăng Y ca)
+  const deficitMatch = text.match(/THIẾU\s+(\d+)\s+CÔNG NHÂN(?:\s+\(Cần điều động thêm hoặc tăng\s+(\d+)\s+ca\))?/i);
+  if (deficitMatch) {
+    const x = deficitMatch[1];
+    const y = deficitMatch[2] || 1;
+    if (lang === 'en') return `DEFICIT ${x} WORKERS (Add staff or run +${y} shifts)`;
+    if (lang === 'zh') return `缺工 ${x} 人 (需調配人力或增加 ${y} 班次)`;
+  }
+
+  // Mẫu: DƯ X CÔNG NHÂN (Có thể điều chuyển hỗ trợ xưởng khác)
+  const surplusMatch = text.match(/DƯ\s+(\d+)\s+CÔNG NHÂN/i);
+  if (surplusMatch) {
+    const x = surplusMatch[1];
+    if (lang === 'en') return `SURPLUS ${x} WORKERS (Can reassign to other shops)`;
+    if (lang === 'zh') return `盈餘 ${x} 人 (可調度支援其他車間)`;
+  }
+
+  if (text.includes("Đủ nhân sự")) {
+    if (lang === 'en') return "Optimal headcount balance";
+    if (lang === 'zh') return "人力配置最佳平衡";
+  }
+
+  // 3. Tự động dịch mẫu đề xuất máy móc CapEx
+  if (text.includes("ĐIỂM NGHẼN CNC")) {
+    const cncMatch = text.match(/ĐIỂM NGHẼN CNC \((\d+)%\): Cần đầu tư thêm (\d+) máy CNC hoặc tăng (\d+) ca/i);
+    if (cncMatch) {
+      const load = cncMatch[1], mc = cncMatch[2], sh = cncMatch[3];
+      if (lang === 'en') return `CNC BOTTLENECK (${load}%): Invest +${mc} CNC machines or run +${sh} shifts`;
+      if (lang === 'zh') return `CNC 瓶頸 (${load}%): 需增購 ${mc} 台CNC或增加 ${sh} 個班次`;
+    }
+  }
+
+  if (text.includes("Máy dập 160T hỏng")) {
+    if (lang === 'en') return "WARNING: 160T Press down! Transfer die to 250T Hydraulic Press";
+    if (lang === 'zh') return "警告：160T沖床故障！需轉模至 250T 油壓機";
+  }
+
+  if (text.includes("Tải cao: Cần kích hoạt thêm Robot Hàn")) {
+    if (lang === 'en') return "High load: Activate backup OTC Welding Robot 02";
+    if (lang === 'zh') return "高負載：需啟動備用 OTC 焊接機器人 02";
+  }
+
+  if (text.includes("Đủ công suất")) {
+    if (lang === 'en') return "Capacity OK (Ready)";
+    if (lang === 'zh') return "產能充裕 (就緒)";
+  }
+
+  // 4. Nếu là đoạn văn bản chưa có trong từ điển, tự động thay thế các cụm từ xưởng phổ biến
+  let translated = text;
+  Object.keys(dynamicLexicon).forEach(key => {
+    if (translated.includes(key) && dynamicLexicon[key][lang]) {
+      translated = translated.replaceAll(key, dynamicLexicon[key][lang]);
+    }
+  });
+
+  return translated;
+}
+
+// Áp dụng dịch cho toàn trang
 function applyTranslations(lang) {
-  const t = mesTranslations[lang] || mesTranslations.vi;
+  const tDict = mesTranslations[lang] || mesTranslations.vi;
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if (t[key]) {
+    if (tDict[key]) {
       if (el.tagName === 'INPUT' && el.getAttribute('placeholder')) {
-        el.placeholder = t[key];
+        el.placeholder = tDict[key];
       } else {
-        el.innerText = t[key];
+        el.innerText = tDict[key];
       }
     }
   });
 
-  // Cập nhật giá trị hiển thị trên dropdown chọn ngôn ngữ (nếu có trên trang)
   const langSelect = document.getElementById('langSelect');
   if (langSelect) langSelect.value = lang;
 }
 
-// Tự động dịch ngay khi tải trang
 document.addEventListener('DOMContentLoaded', () => {
-  const currentLang = getSavedLanguage();
-  applyTranslations(currentLang);
+  applyTranslations(getSavedLanguage());
 });
