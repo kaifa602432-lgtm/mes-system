@@ -9,7 +9,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ==========================================
 // 1. MASTER DATA APIs
+// ==========================================
 app.get('/api/products', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM md_products ORDER BY product_id');
@@ -65,7 +67,9 @@ app.get('/api/shifts', async (req, res) => {
   }
 });
 
+// ==========================================
 // 2. PHÁT LỆNH WO & CẤP PHÁT BOM
+// ==========================================
 app.post('/api/work-orders', async (req, res) => {
   const { wo_id, product_id, plan_quantity, planned_start_date, planned_due_date } = req.body;
   try {
@@ -140,7 +144,9 @@ app.get('/api/work-orders/:woId/tickets', async (req, res) => {
   }
 });
 
+// ==========================================
 // 3. THAO TÁC XƯỞNG
+// ==========================================
 app.get('/api/shopfloor/scan/:ticketId', async (req, res) => {
   try {
     const { ticketId } = req.params;
@@ -229,7 +235,9 @@ app.post('/api/shopfloor/finish', async (req, res) => {
   }
 });
 
+// ==========================================
 // 4. ANALYTICS & APS
+// ==========================================
 app.get('/api/analytics/wip-flow', async (req, res) => {
   try {
     const query = `
@@ -299,9 +307,7 @@ app.get('/api/analytics/incidents', async (req, res) => {
   }
 });
 
-// =========================================================================
 // NÂNG CẤP THUẬT TOÁN APS: TÍNH TẢI MÁY, NĂNG SUẤT NHÂN SỰ & CẢNH BÁO QUÁ TẢI
-// =========================================================================
 app.post('/api/aps/auto-schedule', async (req, res) => {
   const { wo_id, scheduled_date, shift_id } = req.body;
   try {
@@ -332,7 +338,7 @@ app.post('/api/aps/auto-schedule', async (req, res) => {
 
     const machineMapping = {
       10: { mc: 'MC-PRESS-01', eff: 0.85, opCode: 'NV-088', opEff: 0.95 },
-      20: { mc: 'MC-CNC-01',   eff: 0.75, opCode: 'NV-102', opEff: 0.90 }, // CNC hay bị quá tải do chu kỳ dài
+      20: { mc: 'MC-CNC-01',   eff: 0.75, opCode: 'NV-102', opEff: 0.90 },
       30: { mc: 'MC-WELD-01',  eff: 0.80, opCode: 'NV-045', opEff: 0.85 },
       40: { mc: 'MC-PAINT-01', eff: 0.90, opCode: 'NV-019', opEff: 0.95 },
       50: { mc: 'MC-ASSY-01',  eff: 0.95, opCode: 'NV-077', opEff: 0.90 }
@@ -344,15 +350,12 @@ app.post('/api/aps/auto-schedule', async (req, res) => {
     for (const t of tickets) {
       const cfg = machineMapping[t.step_order] || { mc: 'MC-PRESS-01', eff: 0.8, opCode: 'NV-088', opEff: 0.9 };
       
-      // Lấy chu kỳ lý thuyết chuẩn của máy
       const { rows: mcRows } = await db.query('SELECT ideal_cycle_time, machine_name FROM md_machines WHERE machine_id = $1', [cfg.mc]);
       const cycleTimeSec = mcRows.length > 0 ? Number(mcRows[0].ideal_cycle_time) : 30;
 
-      // Thời gian cần chạy thực tế (phút) = (Số lượng * CycleTime) / (OEE Máy * Hiệu suất NV * 60)
       const combinedEfficiency = cfg.eff * cfg.opEff;
       const requiredMinutes = Math.round(((targetQty * cycleTimeSec) / 60.0) / combinedEfficiency);
 
-      // Tỷ lệ tải công suất = Thời gian cần / Thời gian 1 ca
       const loadPercent = Math.round((requiredMinutes / shiftMinutes) * 100);
       const isOverloaded = loadPercent > 100;
       if (isOverloaded) bottleneckFound = true;
@@ -380,7 +383,6 @@ app.post('/api/aps/auto-schedule', async (req, res) => {
       });
     }
 
-    // Nếu quá tải, tự động ghi nhận vào Nhật ký Sự cố ANDON
     if (bottleneckFound) {
       await db.query(`
         INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_wo_id, description, action_taken)
@@ -402,14 +404,13 @@ app.post('/api/aps/auto-schedule', async (req, res) => {
   }
 });
 
-// API Phân tích Năng lực & Gợi ý Đầu tư Thiết bị (CapEx Simulation)
+// API Phân tích Năng lực Thiết bị & Đề xuất Đầu tư CapEx
 app.get('/api/aps/capacity-analysis/:woId', async (req, res) => {
   const { woId } = req.params;
   try {
     const { rows: wo } = await db.query('SELECT plan_quantity FROM mes_work_orders WHERE wo_id = $1', [woId]);
     const qty = wo.length > 0 ? Number(wo[0].plan_quantity) : 1000;
 
-    // Giả lập ma trận tải theo 5 nhóm phân xưởng
     const analysis = [
       { dept: 'Xưởng Dập', current_machines: 3, cycle: 15, current_capacity_shift: 1500, demand: qty, load: Math.round((qty/1500)*100), suggestion: 'Đủ công suất (Tải ổn định)' },
       { dept: 'Xưởng CNC', current_machines: 1, cycle: 45, current_capacity_shift: 500, demand: qty, load: Math.round((qty/500)*100), suggestion: qty > 500 ? `CẦN ĐẦU TƯ THÊM ${Math.ceil(qty/500) - 1} MÁY PHAY CNC HOẶC TĂNG ${Math.ceil(qty/500)} CA` : 'Đủ tải' },
@@ -419,6 +420,57 @@ app.get('/api/aps/capacity-analysis/:woId', async (req, res) => {
     ];
 
     res.json({ success: true, data: analysis });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// API Phân tích Cân bằng Nhân lực (Headcount & Manpower Planning)
+app.get('/api/analytics/manpower-analysis', async (req, res) => {
+  try {
+    const { rows: demandRows } = await db.query(`
+      SELECT COALESCE(SUM(plan_quantity), 0) as total_demand 
+      FROM mes_work_orders 
+      WHERE status IN ('RELEASED', 'RUNNING')
+    `);
+    const totalQty = Number(demandRows[0].total_demand) || 500;
+
+    const departments = [
+      { dept: 'Xưởng Dập', current_workers: 4, standard_cycle_sec: 15, worker_efficiency: 0.95, shift_minutes: 435 },
+      { dept: 'Xưởng CNC', current_workers: 3, standard_cycle_sec: 45, worker_efficiency: 0.90, shift_minutes: 435 },
+      { dept: 'Xưởng Hàn', current_workers: 4, standard_cycle_sec: 60, worker_efficiency: 0.85, shift_minutes: 435 },
+      { dept: 'Xưởng Sơn', current_workers: 3, standard_cycle_sec: 30, worker_efficiency: 0.95, shift_minutes: 435 },
+      { dept: 'Xưởng Lắp Ráp', current_workers: 6, standard_cycle_sec: 20, worker_efficiency: 0.90, shift_minutes: 435 }
+    ];
+
+    const manpowerReport = departments.map(d => {
+      const totalMinutesNeeded = Math.round((totalQty * d.standard_cycle_sec) / (60.0 * d.worker_efficiency));
+      const currentCapacityMinutes = d.current_workers * d.shift_minutes;
+      const workersRequired = Math.ceil(totalMinutesNeeded / d.shift_minutes);
+      const workerGap = workersRequired - d.current_workers;
+      const loadPercent = Math.round((totalMinutesNeeded / currentCapacityMinutes) * 100);
+
+      let action = 'Đủ nhân sự (Cân bằng)';
+      if (workerGap > 0) {
+        action = `THIẾU ${workerGap} CÔNG NHÂN (Hoặc cần tăng ${Math.ceil(workerGap / d.current_workers)} ca làm việc)`;
+      } else if (workerGap < 0) {
+        action = `DƯ THỪA ${Math.abs(workerGap)} CÔNG NHÂN (Có thể điều chuyển)`;
+      }
+
+      return {
+        department: d.dept,
+        current_workers: d.current_workers,
+        total_demand_qty: totalQty,
+        minutes_needed: totalMinutesNeeded,
+        workers_required: workersRequired,
+        worker_gap: workerGap,
+        load_percent: loadPercent,
+        status: workerGap > 0 ? 'DEFICIT' : (workerGap === 0 ? 'BALANCED' : 'SURPLUS'),
+        recommendation: action
+      };
+    });
+
+    res.json({ success: true, total_demand: totalQty, data: manpowerReport });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -495,17 +547,16 @@ app.get('/api/dashboard/oee', async (req, res) => {
 });
 
 // =========================================================================
-// 5. TRUNG TÂM GIẢ LẬP SỰ CỐ CƠ KHÍ & STRESS-TEST (INCIDENT SIMULATION SUITE)
+// 5. TRUNG TÂM GIẢ LẬP SỰ CỐ & STRESS-TEST
 // =========================================================================
 
-// Sự cố 1: Không đủ máy sản xuất (Tắc nghẽn Bottleneck xưởng CNC)
+// Sự cố 1: Thiếu máy / Nghẽn phôi CNC
 app.post('/api/simulator/scenario/lack-machine', async (req, res) => {
   try {
     const simWoId = `WO-BOTTLENECK-${Date.now().toString().slice(-4)}`;
     await db.query('BEGIN');
     await db.query(`INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, status) VALUES ($1, 'FG-FRAME-01', 800, 'RELEASED')`, [simWoId]);
     await db.query(`INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty) VALUES ($1, 'OP_STAMP_01', 10, 800, 0, 800)`, [simWoId]);
-    // 800 chi tiết dồn về xưởng CNC gây nghẽn nghiêm trọng
     await db.query(`INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty) VALUES ($1, 'OP_CNC_MILL_01', 20, 800, 800, 0)`, [simWoId]);
     await db.query(`
       INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, affected_wo_id, affected_machine_id, description, action_taken)
@@ -519,7 +570,7 @@ app.post('/api/simulator/scenario/lack-machine', async (req, res) => {
   }
 });
 
-// Sự cố 2: Máy đang sản xuất thì bị hư hỏng đột ngột
+// Sự cố 2: Đang sản xuất máy hỏng đột ngột
 app.post('/api/simulator/scenario/machine-breakdown', async (req, res) => {
   try {
     await db.query('BEGIN');
@@ -536,7 +587,7 @@ app.post('/api/simulator/scenario/machine-breakdown', async (req, res) => {
   }
 });
 
-// Sự cố 3: Thiếu nguyên vật liệu (Tồn kho cạn kiệt)
+// Sự cố 3: Thiếu nguyên vật liệu
 app.post('/api/simulator/scenario/material-shortage', async (req, res) => {
   try {
     await db.query('BEGIN');
@@ -553,7 +604,7 @@ app.post('/api/simulator/scenario/material-shortage', async (req, res) => {
   }
 });
 
-// Sự cố 4: Công nhân chuyên môn cao nghỉ đột xuất
+// Sự cố 4: Công nhân nghỉ đột xuất
 app.post('/api/simulator/scenario/labor-absent', async (req, res) => {
   try {
     await db.query(`
@@ -566,7 +617,7 @@ app.post('/api/simulator/scenario/labor-absent', async (req, res) => {
   }
 });
 
-// Sự cố 5: Đột biến tăng đơn hàng khẩn cấp (Rush Order x3 lần)
+// Sự cố 5: Đột biến tăng đơn hàng khẩn cấp
 app.post('/api/simulator/scenario/rush-order', async (req, res) => {
   try {
     const rushWo = `WO-RUSH-${Date.now().toString().slice(-4)}`;
@@ -587,7 +638,7 @@ app.post('/api/simulator/scenario/rush-order', async (req, res) => {
   }
 });
 
-// Sự cố 6: Lô hàng phát sinh lỗi hàng loạt (Chất lượng giảm sút nghiêm trọng)
+// Sự cố 6: Lỗi chất lượng hàng loạt
 app.post('/api/simulator/scenario/mass-defect', async (req, res) => {
   try {
     await db.query('BEGIN');
@@ -612,19 +663,63 @@ app.post('/api/simulator/scenario/mass-defect', async (req, res) => {
   }
 });
 
-// Nút TỔNG HỢP: SIÊU MÔ PHỎNG KHỦNG HOẢNG SẢN XUẤT (STRESS-TEST ĐA SỰ CỐ)
+// ĐẨY TẢI CỰC ĐẠI: NẠP 4 ĐƠN HÀNG HÀNG LOẠT (11,300 PCS)
+app.post('/api/simulator/flood-orders', async (req, res) => {
+  try {
+    await db.query('BEGIN');
+    const floodBatch = [
+      { id: `WO-MASS-01`, qty: 2500, days: 3 },
+      { id: `WO-MASS-02`, qty: 3000, days: 4 },
+      { id: `WO-MASS-03`, qty: 1800, days: 2 },
+      { id: `WO-MASS-04`, qty: 4000, days: 5 }
+    ];
+
+    for (const wo of floodBatch) {
+      await db.query(
+        `INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, planned_start_date, planned_due_date, status)
+         VALUES ($1, 'FG-FRAME-01', $2, NOW(), NOW() + ($3 || ' days')::INTERVAL, 'RELEASED')
+         ON CONFLICT (wo_id) DO UPDATE SET plan_quantity = EXCLUDED.plan_quantity`,
+        [wo.id, wo.qty, wo.days]
+      );
+
+      const routingQuery = `SELECT step_order, operation_id FROM md_routings WHERE product_id = 'FG-FRAME-01' ORDER BY step_order ASC;`;
+      const { rows: steps } = await db.query(routingQuery);
+      for (const step of steps) {
+        await db.query(
+          `INSERT INTO mes_job_tickets (ticket_id, wo_id, operation_id, step_order, target_qty, status)
+           VALUES ($1, $2, $3, $4, $5, 'PENDING')
+           ON CONFLICT (ticket_id) DO UPDATE SET target_qty = EXCLUDED.target_qty`,
+          [`${wo.id}-STEP${step.step_order}`, wo.id, step.operation_id, step.step_order, wo.qty]
+        );
+      }
+    }
+
+    await db.query(`
+      INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken)
+      VALUES ('MASS_ORDER_SPIKE', 'Đột biến nạp 4 Lệnh sản xuất cực lớn (11,300 PCS)', 'RUSH_ORDER', 'CRITICAL',
+              'Nhà máy tiếp nhận đồng loạt 4 dự án lớn vượt 400% công suất thiết kế thông thường',
+              'Cần chạy bài toán cân bằng nhân lực (Manpower Loading) và kích hoạt chế độ làm việc 3 ca liên tục')
+    `);
+
+    await db.query('COMMIT');
+    res.json({ success: true, message: 'Đã nạp thành công 4 đơn hàng cực lớn với tổng sản lượng 11,300 PCS!' });
+  } catch (err) {
+    await db.query('ROLLBACK');
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// SIÊU MÔ PHỎNG KHỦNG HOẢNG TỔNG HỢP
 app.post('/api/simulator/scenario/mega-crisis', async (req, res) => {
   const crisisWo = `CRISIS-WO-${Date.now().toString().slice(-4)}`;
   try {
     await db.query('BEGIN');
 
-    // 1. Tạo đơn hàng áp lực cao
     await db.query(
       `INSERT INTO mes_work_orders (wo_id, product_id, plan_quantity, status) VALUES ($1, 'FG-FRAME-01', 2000, 'RELEASED')`,
       [crisisWo]
     );
 
-    // 2. Tạo đầy đủ các thẻ Job Tickets cho lệnh khủng hoảng này
     const routingSteps = [
       { step: 10, op: 'OP_STAMP_01' },
       { step: 20, op: 'OP_CNC_MILL_01' },
@@ -642,10 +737,8 @@ app.post('/api/simulator/scenario/mega-crisis', async (req, res) => {
       );
     }
 
-    // 3. Đánh dấu máy dập 1 bị hỏng đột ngột
     await db.query(`UPDATE md_machines SET current_status = 'BREAKDOWN' WHERE machine_id = 'MC-PRESS-01'`);
     
-    // 4. Gây ứ đọng bán thành phẩm khủng khiếp tại CNC (Nghẽn cổ chai)
     await db.query(
       `INSERT INTO mes_wip_inventory (wo_id, operation_id, step_order, in_qty, wip_qty, out_good_qty) VALUES ($1, 'OP_STAMP_01', 10, 2000, 0, 1900)
        ON CONFLICT (wo_id, step_order) DO UPDATE SET wip_qty = 0, out_good_qty = 1900`,
@@ -657,7 +750,6 @@ app.post('/api/simulator/scenario/mega-crisis', async (req, res) => {
       [crisisWo]
     );
 
-    // 5. Ghi nhận logs sản xuất và lỗi phế phẩm phát sinh
     const { rows: l1 } = await db.query(
       `INSERT INTO mes_production_logs (ticket_id, machine_id, operator_code, start_time, end_time, produced_good_qty, produced_scrap_qty)
        VALUES ($1, 'MC-PRESS-02', 'NV-088', NOW() - INTERVAL '3 hours', NOW(), 1900, 100) RETURNING log_id`,
@@ -672,7 +764,6 @@ app.post('/api/simulator/scenario/mega-crisis', async (req, res) => {
     );
     await db.query(`INSERT INTO mes_defect_logs (log_id, defect_id, defect_qty) VALUES ($1, 'DEF_WELD_POROSITY', 50)`, [l2[0].log_id]);
 
-    // 6. Ghi nhận nhật ký sự cố chuỗi
     await db.query(`
       INSERT INTO mes_incident_logs (incident_code, incident_name, category, severity, description, action_taken) VALUES
       ('CRISIS_OVERLOAD', 'Quá tải dây chuyền (2,000 PCS) & Tắc nghẽn CNC', 'RUSH_ORDER', 'CRITICAL', 'Đơn hàng lớn vượt 250% công suất bình thường gây quá tải toàn bộ các trạm', 'Kích hoạt phương án khẩn cấp: Tăng 3 ca sản xuất, huy động toàn bộ 14 máy'),
@@ -691,7 +782,7 @@ app.post('/api/simulator/scenario/mega-crisis', async (req, res) => {
   }
 });
 
-// Reset hệ thống về trạng thái ban đầu sạch sẽ
+// Phục hồi hệ thống về trạng thái ban đầu
 app.post('/api/simulator/reset-all', async (req, res) => {
   try {
     await db.query('BEGIN');
