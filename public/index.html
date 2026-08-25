@@ -11,15 +11,16 @@
 <body class="bg-slate-100 p-6">
   <div class="max-w-6xl mx-auto space-y-6">
     
-    <!-- Tiêu đề -->
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+    <!-- Tiêu đề & Thanh điều hướng tích hợp -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
         <h1 class="text-2xl font-bold text-slate-800 tracking-tight">HỆ THỐNG MES - QUẢN LÝ SẢN XUẤT</h1>
         <p class="text-slate-500 text-sm">Theo dõi tiến độ, lệnh sản xuất & thẻ công đoạn QR</p>
       </div>
-      <div class="flex gap-2">
-        <a href="/dashboard.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white hover:bg-slate-700">📊 Xem Dashboard</a>
-        <a href="/operator.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-500">📱 Trạm Quét QR</a>
+      <div class="flex flex-wrap gap-2">
+        <a href="/master-data.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-500 shadow-sm transition">📦 Dữ Liệu Gốc & BOM</a>
+        <a href="/dashboard.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white hover:bg-slate-700 shadow-sm transition">📊 Xem Dashboard</a>
+        <a href="/operator.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-500 shadow-sm transition">📱 Trạm Quét QR</a>
       </div>
     </div>
 
@@ -196,7 +197,7 @@
       }
     });
 
-    // Chạy khi tải trang
+    // Khởi chạy khi tải trang
     loadProducts();
     loadWorkOrders();
   </script>
