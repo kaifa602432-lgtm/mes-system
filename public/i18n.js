@@ -9,25 +9,20 @@ const mesTranslations = {
     nav_master: "📦 Dữ Liệu Gốc & BOM",
     nav_scan: "📱 Trạm Quét QR",
     nav_analytics: "📈 Phân Tích & APS",
-    app_title: "HỆ THỐNG MES - QUẢN LÝ SẢN XUẤT",
-    app_subtitle: "Theo dõi tiến độ, phát lệnh, cấp phát định mức & thẻ công đoạn QR",
-    card_create_wo: "➕ Tạo Lệnh Sản Xuất",
-    lbl_wo_id: "Mã Lệnh (WO ID)",
-    lbl_product: "Sản phẩm",
-    lbl_plan_qty: "Số lượng kế hoạch (PCS)",
-    lbl_start_date: "Bắt đầu",
-    lbl_due_date: "Hoàn thành",
-    btn_release_wo: "Phát Lệnh (Release WO)",
-    card_wo_list: "📋 Danh Sách Lệnh Sản Xuất",
-    btn_refresh: "🔄 Làm mới",
-    th_wo_code: "Mã WO",
-    th_prod_name: "Tên Sản Phẩm",
-    th_plan_qty: "SL Kế Hoạch",
-    th_status: "Trạng Thái",
-    th_action: "Thao Tác",
-    btn_view_qr: "Xem Thẻ QR",
-    card_qr_section: "🏷️ Thẻ Công Đoạn & Mã QR Lệnh:",
-    btn_print_cards: "🖨️ In Danh Sách Thẻ",
+
+    // Dashboard OEE
+    oee_header_title: "📊 DASHBOARD HIỆU SUẤT THIẾT BỊ TỔNG THỂ (OEE)",
+    oee_header_sub: "Giám sát thời gian thực thiết bị: Sẵn sàng (A), Tốc độ (P), Chất lượng (Q)",
+    card_overall_oee: "OEE Toàn Xưởng",
+    card_running_mc: "Máy Đang Chạy",
+    card_idle_mc: "Máy Chờ / Nghỉ",
+    card_breakdown_mc: "Máy Sự Cố Dừng",
+    lbl_oee_index: "Chỉ số OEE:",
+    lbl_avail_a: "Sẵn Sàng (A)",
+    lbl_perf_p: "Hiệu Suất (P)",
+    lbl_qual_q: "Chất Lượng (Q)",
+
+    // Analytics & Simulation
     an_title: "📈 TRUNG TÂM PHÂN TÍCH NĂNG SUẤT, WIP, APS & ĐỊNH BIÊN NHÂN LỰC",
     an_subtitle: "Tính toán % tải thực tế theo OEE máy móc, năng suất công nhân, cảnh báo quá tải và định biên nhân sự theo ca",
     sim_header: "🚨 TRUNG TÂM KÍCH HOẠT GIẢ LẬP SỰ CỐ & ĐẨY TẢI TOÀN BỘ NHÀ MÁY",
@@ -64,25 +59,20 @@ const mesTranslations = {
     nav_master: "📦 Master Data & BOM",
     nav_scan: "📱 QR Terminal",
     nav_analytics: "📈 Analytics & APS",
-    app_title: "MES SYSTEM - PRODUCTION EXECUTION",
-    app_subtitle: "Real-time tracking, order release, BOM auto-allocation & routing QR job tickets",
-    card_create_wo: "➕ Create Work Order",
-    lbl_wo_id: "Work Order ID (WO ID)",
-    lbl_product: "Product",
-    lbl_plan_qty: "Planned Quantity (PCS)",
-    lbl_start_date: "Start Date",
-    lbl_due_date: "Due Date",
-    btn_release_wo: "Release Work Order",
-    card_wo_list: "📋 Work Order Register",
-    btn_refresh: "🔄 Refresh",
-    th_wo_code: "WO ID",
-    th_prod_name: "Product Name",
-    th_plan_qty: "Plan Qty",
-    th_status: "Status",
-    th_action: "Action",
-    btn_view_qr: "View QR Tickets",
-    card_qr_section: "🏷️ Routing Step Job Tickets & QR Codes:",
-    btn_print_cards: "🖨️ Print Job Tickets",
+
+    // Dashboard OEE
+    oee_header_title: "📊 OVERALL EQUIPMENT EFFECTIVENESS (OEE) DASHBOARD",
+    oee_header_sub: "Real-time monitoring: Availability (A), Performance (P), Quality (Q)",
+    card_overall_oee: "Plant-wide OEE",
+    card_running_mc: "Running Machines",
+    card_idle_mc: "Idle / Standby",
+    card_breakdown_mc: "Breakdown / Down",
+    lbl_oee_index: "OEE Index:",
+    lbl_avail_a: "Availability (A)",
+    lbl_perf_p: "Performance (P)",
+    lbl_qual_q: "Quality (Q)",
+
+    // Analytics & Simulation
     an_title: "📈 PRODUCTIVITY, WIP, APS & HEADCOUNT CAPACITY ANALYSIS CENTER",
     an_subtitle: "Calculate actual load % by machine OEE, worker efficiency, overload warnings and shift headcount planning",
     sim_header: "🚨 INCIDENT SIMULATION & PLANT-WIDE FLOODING CENTER",
@@ -119,25 +109,20 @@ const mesTranslations = {
     nav_master: "📦 基礎數據與 BOM",
     nav_scan: "📱 QR 掃碼工作站",
     nav_analytics: "📈 分析與 APS",
-    app_title: "MES 生產執行與製造管理系統",
-    app_subtitle: "實時進度追蹤、工單發放、BOM 物料自動扣減及工序 QR 隨行卡",
-    card_create_wo: "➕ 創建生產工單",
-    lbl_wo_id: "工單編號 (WO ID)",
-    lbl_product: "產品型號",
-    lbl_plan_qty: "計劃生產數量 (PCS)",
-    lbl_start_date: "計劃開工",
-    lbl_due_date: "交貨日期",
-    btn_release_wo: "發放工單 (Release WO)",
-    card_wo_list: "📋 生產工單清單",
-    btn_refresh: "🔄 刷新數據",
-    th_wo_code: "工單號",
-    th_prod_name: "產品名稱",
-    th_plan_qty: "計劃數量",
-    th_status: "狀態",
-    th_action: "操作",
-    btn_view_qr: "查看 QR 卡",
-    card_qr_section: "🏷️ 工序隨行卡與 QR 碼：",
-    btn_print_cards: "🖨️ 列印工序卡",
+
+    // Dashboard OEE
+    oee_header_title: "📊 設備總體效率 (OEE) 實時監控看板",
+    oee_header_sub: "實時監控設備指標：時間稼動率 (A)、性能稼動率 (P)、良品率 (Q)",
+    card_overall_oee: "全廠綜合 OEE",
+    card_running_mc: "運行中設備",
+    card_idle_mc: "待機 / 停用",
+    card_breakdown_mc: "故障停機設備",
+    lbl_oee_index: "OEE 指標:",
+    lbl_avail_a: "時間稼動率 (A)",
+    lbl_perf_p: "性能稼動率 (P)",
+    lbl_qual_q: "良品率 (Q)",
+
+    // Analytics & Simulation
     an_title: "📈 產能、WIP、APS 排程與人力編制分析中心",
     an_subtitle: "根據設備 OEE、工人效率計算實際負載百分比、過載警告及班次人力規劃",
     sim_header: "🚨 異常狀況模擬與全廠負荷中心",
@@ -178,6 +163,20 @@ const dynamicLexicon = {
   "Xưởng Sơn": { en: "Painting Shop", zh: "塗裝車間" },
   "Xưởng Lắp Ráp": { en: "Assembly Line", zh: "組裝線" },
   "Xưởng QC": { en: "QC Inspection", zh: "品管檢驗" },
+  "Xưởng Chung": { en: "General Plant", zh: "綜合廠區" },
+
+  // Máy móc thiết bị (Dàn máy hiện tại)
+  "Băng chuyền lắp ráp #01": { en: "Assembly Conveyor #01", zh: "組裝流水線 #01" },
+  "Máy phay CNC 3 trục #01": { en: "3-Axis CNC Mill #01", zh: "3軸 CNC 銑床 #01" },
+  "Máy phay CNC 4 trục #02": { en: "4-Axis CNC Mill #02", zh: "4軸 CNC 銑床 #02" },
+  "Dây chuyền sơn tự động": { en: "Auto Powder Coating Line", zh: "自動粉體塗裝線" },
+  "Máy dập 110 Tấn #01": { en: "110T Press Machine #01", zh: "110噸 沖床 #01" },
+  "Máy dập 200 Tấn #01": { en: "200T Press Machine #01", zh: "200噸 沖床 #01" },
+  "Máy dập cơ 160T AIDA": { en: "AIDA 160T Mechanical Press", zh: "AIDA 160噸 機械沖床" },
+  "Máy phay đứng CNC Mazak": { en: "Mazak Vertical CNC Mill", zh: "Mazak 立式 CNC 銑床" },
+  "Robot hàn tự động OTC": { en: "OTC Auto Welding Robot", zh: "OTC 自動焊接機器人" },
+  "Buồng phun sơn tĩnh điện Wagner": { en: "Wagner Powder Coating Booth", zh: "Wagner 靜電塗裝房" },
+  "Bàn lắp ráp & đóng gói băng tải": { en: "Assembly & Packing Bench", zh: "組裝與包裝流水工作台" },
 
   // Sản phẩm
   "Khung đỡ máy hoàn thiện": { en: "Complete Machine Frame FG", zh: "完整機架成品" },
@@ -185,38 +184,17 @@ const dynamicLexicon = {
   "Vỏ tủ điện": { en: "Electrical Enclosure", zh: "配電箱外殼" },
   "Tay đỡ robot": { en: "Robot Arm Bracket", zh: "機器人機械臂支架" },
 
+  // Trạng thái máy
+  "IDLE": { en: "IDLE", zh: "待機" },
+  "RUNNING": { en: "RUNNING", zh: "運行中" },
+  "BREAKDOWN": { en: "BREAKDOWN", zh: "故障停機" },
+
   // Công đoạn
   "Bước 10 - Dập Cắt & Định Hình": { en: "Step 10 - Blanking & Stamping", zh: "工序 10 - 沖壓下料與成型" },
   "Bước 20 - Phay CNC Chi Tiết": { en: "Step 20 - Precision CNC Milling", zh: "工序 20 - CNC 精密銑削" },
   "Bước 30 - Hàn Kết Cấu Khung": { en: "Step 30 - Structure Frame Welding", zh: "工序 30 - 結構框架焊接" },
   "Bước 40 - Sơn Tĩnh Điện": { en: "Step 40 - Powder Coating", zh: "工序 40 - 粉體靜電塗裝" },
-  "Bước 50 - Lắp Ráp & Đóng Gói": { en: "Step 50 - Assembly & Final Packing", zh: "工序 50 - 組裝與成品包裝" },
-
-  // Ca sản xuất
-  "Ca Sáng (06:00 - 14:00) - 7.25h": { en: "Morning Shift (06:00 - 14:00) - 7.25h", zh: "早班 (06:00 - 14:00) - 7.25h" },
-  "Ca Chiều (14:00 - 22:00) - 7.25h": { en: "Afternoon Shift (14:00 - 22:00) - 7.25h", zh: "中班 (14:00 - 22:00) - 7.25h" },
-  "Ca Đêm (22:00 - 06:00) - 7.25h": { en: "Night Shift (22:00 - 06:00) - 7.25h", zh: "夜班 (22:00 - 06:00) - 7.25h" },
-
-  // Trạng thái WIP
-  "Đã hoàn thành": { en: "Completed", zh: "已完成" },
-  "Chưa gia công": { en: "Pending", zh: "待加工" },
-  "Đang chờ": { en: "Queued", zh: "等待中" },
-
-  // Tên sự cố ANDON (Khớp chính xác chuỗi DB)
-  "Tỷ lệ phế phẩm tăng vọt tại xưởng Dập & Hàn": { en: "Scrap Rate Spikes at Stamping & Welding", zh: "沖壓與焊接車間報廢率劇增" },
-  "Hư hỏng máy dập chính MC-PRESS-01": { en: "Main Stamping Press MC-PRESS-01 Breakdown", zh: "主要沖床 MC-PRESS-01 突發故障" },
-  "Quá tải dây chuyền (2,000 PCS) & Tắc nghẽn CNC": { en: "Line Overload (2,000 PCS) & CNC Bottleneck", zh: "產線過載 (2,000 件) 與 CNC 瓶頸" },
-  "Thiếu máy phay CNC - Ứ đọng 800 phôi": { en: "Lack of CNC Machines - 800 WIP Queued", zh: "CNC 設備不足 - 積壓 800 件在製品" },
-  "Cạn kiệt Tôn cuộn SS400 (Chỉ còn 45kg)": { en: "SS400 Steel Coil Depleted (<45kg)", zh: "SS400 鋼卷耗盡 (庫存低於45kg)" },
-  "3 Công nhân bậc cao xưởng Hàn vắng mặt": { en: "3 Senior Welders Absent Suddenly", zh: "3 名資深焊工突發缺勤" },
-  "Đơn hàng khẩn cấp 1,500 PCS trong 48h": { en: "Emergency Rush Order 1,500 PCS in 48h", zh: "緊急插單 1,500 件 (48小時交期)" },
-  "Phế phẩm hàng loạt tại Xưởng Sơn (80 PCS hỏng)": { en: "Mass Coating Defects (80 PCS peeled)", zh: "塗裝車間批次不良 (80 件剝落)" },
-
-  // Tên lỗi Pareto
-  "Ba via dập vượt tiêu chuẩn": { en: "Stamping Burrs", zh: "沖壓毛邊過大" },
-  "Bong tróc màng sơn": { en: "Coating Peeling", zh: "漆面剝落" },
-  "Rỗ khí mối hàn": { en: "Welding Porosity", zh: "焊縫氣孔" },
-  "Sai dung sai kích thước CNC": { en: "CNC Dimension Tolerance", zh: "CNC 尺寸超差" }
+  "Bước 50 - Lắp Ráp & Đóng Gói": { en: "Step 50 - Assembly & Final Packing", zh: "工序 50 - 組裝與成品包裝" }
 };
 
 function getSavedLanguage() {
@@ -228,60 +206,19 @@ function setLanguage(lang) {
   applyTranslations(lang);
 }
 
-// Hàm dịch chuỗi động thông minh
 function t(text) {
   if (!text) return '';
   const lang = getSavedLanguage();
   if (lang === 'vi') return text;
 
-  const cleanText = text.trim();
+  const cleanText = String(text).trim();
 
-  // 1. Khớp từ điển chính xác
+  // Khớp chính xác từ điển
   if (dynamicLexicon[cleanText] && dynamicLexicon[cleanText][lang]) {
     return dynamicLexicon[cleanText][lang];
   }
 
-  // 2. Dịch các mẫu đề xuất máy móc CapEx
-  if (cleanText.includes("Cần tăng tốc độ băng chuyền buồng sơn") || cleanText.includes("Cần tăng tốc độ")) {
-    return lang === 'en' ? "Increase paint conveyor speed" : "需調高塗裝線懸掛鏈速度";
-  }
-  if (cleanText.includes("Cần bổ sung bàn gá lắp ráp phụ trợ") || cleanText.includes("Cần bổ sung bàn gá")) {
-    return lang === 'en' ? "Add auxiliary assembly fixtures" : "需增設輔助組裝夾治具與工作台";
-  }
-  if (cleanText.includes("ĐIỂM NGHẼN CNC")) {
-    const cncMatch = cleanText.match(/ĐIỂM NGHẼN CNC \((\d+)%\): Cần đầu tư thêm (\d+) máy CNC hoặc tăng (\d+) ca/i);
-    if (cncMatch) {
-      const load = cncMatch[1], mc = cncMatch[2], sh = cncMatch[3];
-      return lang === 'en' ? `CNC BOTTLENECK (${load}%): Invest +${mc} CNC machines or run +${sh} shifts` : `CNC 瓶頸 (${load}%): 需增購 ${mc} 台CNC或增加 ${sh} 個班次`;
-    }
-  }
-  if (cleanText.includes("Máy dập 160T hỏng")) {
-    return lang === 'en' ? "WARNING: 160T Press down! Transfer die to 250T Hydraulic Press" : "警告：160T沖床故障！需轉模至 250T 油壓機";
-  }
-  if (cleanText.includes("Tải cao: Cần kích hoạt thêm Robot Hàn")) {
-    return lang === 'en' ? "High load: Activate backup OTC Welding Robot 02" : "高負載：需啟動備用 OTC 焊接機器人 02";
-  }
-  if (cleanText.includes("Đủ công suất")) {
-    return lang === 'en' ? "Capacity OK (Ready)" : "產能充裕 (就緒)";
-  }
-
-  // 3. Dịch các mẫu khuyến nghị nhân sự
-  const deficitMatch = cleanText.match(/THIẾU\s+(\d+)\s+CÔNG NHÂN(?:\s+\(Cần điều động thêm hoặc tăng\s+(\d+)\s+ca\))?/i);
-  if (deficitMatch) {
-    const x = deficitMatch[1];
-    const y = deficitMatch[2] || 1;
-    return lang === 'en' ? `DEFICIT ${x} WORKERS (Add staff or run +${y} shifts)` : `缺工 ${x} 人 (需調配人力或增加 ${y} 班次)`;
-  }
-  const surplusMatch = cleanText.match(/DƯ\s+(\d+)\s+CÔNG NHÂN/i);
-  if (surplusMatch) {
-    const x = surplusMatch[1];
-    return lang === 'en' ? `SURPLUS ${x} WORKERS (Can reassign to other shops)` : `盈餘 ${x} 人 (可調度支援其他車間)`;
-  }
-  if (cleanText.includes("Đủ nhân sự")) {
-    return lang === 'en' ? "Optimal headcount balance" : "人力配置最佳平衡";
-  }
-
-  // 4. Quét thay thế cụm từ lồng nhau
+  // Quét thay thế các từ khóa con
   let translated = cleanText;
   Object.keys(dynamicLexicon).forEach(key => {
     if (translated.includes(key) && dynamicLexicon[key][lang]) {
